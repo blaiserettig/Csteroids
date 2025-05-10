@@ -1,0 +1,8 @@
+[
+{
+  "directory": "D:/Unity/Asteroids/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\clang.exe -ID:/Unity/Asteroids/include -O0 -g -Xclang -gcodeview -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -std=gnu99 -o CMakeFiles\\main.dir\\src\\main.c.obj -c D:\\Unity\\Asteroids\\src\\main.c",
+  "file": "D:\\Unity\\Asteroids\\src\\main.c",
+  "output": "CMakeFiles\\main.dir\\src\\main.c.obj"
+}
+]
