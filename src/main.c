@@ -107,13 +107,13 @@ void update() {
 }
 
 void update_ship() {
-    state.ship.position.x = wrap(state.ship.position.x + state.ship.velocity.x, SCREEN_WIDTH);
-    state.ship.position.y = wrap(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
+    state.ship.position.x = wrapf(state.ship.position.x + state.ship.velocity.x, SCREEN_WIDTH);
+    state.ship.position.y = wrapf(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
 
-    const float radians = state.ship.angle * (M_PI / 180.0f);
+    const float radians = state.ship.angle * ((float)M_PI / 180.0f);
     if (state.w) {
-        state.ship.velocity.x -= sinf(radians) * THRUST;
-        state.ship.velocity.y += cosf(radians) * THRUST;
+        state.ship.velocity.x -= sinf(radians) * (float)THRUST;
+        state.ship.velocity.y += cosf(radians) * (float)THRUST;
         render_booster();
     }
     if (state.a) {
@@ -126,22 +126,22 @@ void update_ship() {
     apply_friction(&state.ship.velocity.x, 0.04f);
     apply_friction(&state.ship.velocity.y, 0.04f);
 
-    state.ship.velocity.x = clamp(state.ship.velocity.x, -10, 10);
-    state.ship.velocity.y = clamp(state.ship.velocity.y, -10, 10);
+    state.ship.velocity.x = clampf(state.ship.velocity.x, -10, 10);
+    state.ship.velocity.y = clampf(state.ship.velocity.y, -10, 10);
 }
 
 void update_asteroids() {
     for (int i = 0; i < state.small_asteroid_count; i++) {
-        state.small_asteroids[i].position.x = wrap(state.small_asteroids[i].position.x += state.small_asteroids[i].velocity.x, SCREEN_WIDTH);
-        state.small_asteroids[i].position.y = wrap(state.small_asteroids[i].position.y += state.small_asteroids[i].velocity.y, SCREEN_HEIGHT);
+        state.small_asteroids[i].position.x = wrapf(state.small_asteroids[i].position.x += state.small_asteroids[i].velocity.x, SCREEN_WIDTH);
+        state.small_asteroids[i].position.y = wrapf(state.small_asteroids[i].position.y += state.small_asteroids[i].velocity.y, SCREEN_HEIGHT);
     }
     for (int i = 0; i < state.medium_asteroid_count; i++) {
-        state.medium_asteroids[i].position.x = wrap(state.medium_asteroids[i].position.x += state.medium_asteroids[i].velocity.x, SCREEN_WIDTH);
-        state.medium_asteroids[i].position.y = wrap(state.medium_asteroids[i].position.y += state.medium_asteroids[i].velocity.y, SCREEN_HEIGHT);
+        state.medium_asteroids[i].position.x = wrapf(state.medium_asteroids[i].position.x += state.medium_asteroids[i].velocity.x, SCREEN_WIDTH);
+        state.medium_asteroids[i].position.y = wrapf(state.medium_asteroids[i].position.y += state.medium_asteroids[i].velocity.y, SCREEN_HEIGHT);
     }
     for (int i = 0; i < state.large_asteroid_count; i++) {
-        state.large_asteroids[i].position.x = wrap(state.large_asteroids[i].position.x += state.large_asteroids[i].velocity.x, SCREEN_WIDTH);
-        state.large_asteroids[i].position.y = wrap(state.large_asteroids[i].position.y += state.large_asteroids[i].velocity.y, SCREEN_HEIGHT);
+        state.large_asteroids[i].position.x = wrapf(state.large_asteroids[i].position.x += state.large_asteroids[i].velocity.x, SCREEN_WIDTH);
+        state.large_asteroids[i].position.y = wrapf(state.large_asteroids[i].position.y += state.large_asteroids[i].velocity.y, SCREEN_HEIGHT);
     }
 }
 
@@ -253,8 +253,8 @@ v2* render_angle_helper(const v2 *points, const int n) {
     v2* new_points = malloc(n * sizeof(v2));
     for (int i = 0; i < n; i++) {
         new_points[i] = points[i];
-        new_points[i].x = points[i].x * cosf(state.ship.angle * (M_PI / 180.f)) - points[i].y * sinf(state.ship.angle * (M_PI / 180.f));
-        new_points[i].y = points[i].x * sinf(state.ship.angle * (M_PI / 180.f)) + points[i].y * cosf(state.ship.angle * (M_PI / 180.0f));
+        new_points[i].x = points[i].x * cosf(state.ship.angle * ((float)M_PI / 180.f)) - points[i].y * sinf(state.ship.angle * ((float)M_PI / 180.f));
+        new_points[i].y = points[i].x * sinf(state.ship.angle * ((float)M_PI / 180.f)) + points[i].y * cosf(state.ship.angle * ((float)M_PI / 180.0f));
     }
     return new_points;
 }
@@ -265,7 +265,7 @@ void generate_small_asteroid() {
         return;
 
     const small_asteroid small = {
-        .position = {SCREEN_WIDTH / 2.0 + 50.0, SCREEN_HEIGHT / 2.0 + 50.0},
+        .position = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
         .velocity = {randf(-2.0f, 2.0f), randf(-2.0f, 2.0f)},
         .angle = 0,
         .points = {
@@ -289,7 +289,7 @@ void generate_medium_asteroid() {
         return;
 
     const medium_asteroid medium = {
-        .position = {SCREEN_WIDTH / 2.0 - 100.0, SCREEN_HEIGHT / 2.0 - 100.0},
+        .position = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
         .velocity = {randf(-1.5f, 1.5f), randf(-1.5f, 1.5f)},
         .angle = 0,
         .points = {
@@ -315,7 +315,7 @@ void generate_large_asteroid() {
         return;
 
     const large_asteroid large = {
-        .position = {SCREEN_WIDTH / 2.0 + 150.0, SCREEN_HEIGHT / 2.0 - 150.0},
+        .position = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
         .velocity = {randf(-1.0f, 1.0f), randf(-1.0f, 1.0f)},
         .angle = 0,
         .points = {
@@ -336,18 +336,18 @@ void generate_large_asteroid() {
     state.large_asteroids[state.large_asteroid_count++] = large;
 }
 
-float wrap(const float given, const float max) {
-    if (given < 0) return max;
-    if (given > max) return 0;
-    return given;
-}
-
 void apply_friction(float *v, const float amount) {
     if (*v > 0) *v = fmaxf(0, *v - amount);
     else if (*v < 0) *v = fminf(0, *v + amount);
 }
 
-float clamp(const float val, const float min, const float max) {
+float wrapf(const float given, const float max) {
+    if (given < 0) return max;
+    if (given > max) return 0;
+    return given;
+}
+
+float clampf(const float val, const float min, const float max) {
     return fmaxf(min, fminf(max, val));
 }
 

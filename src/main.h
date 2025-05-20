@@ -1,3 +1,6 @@
+#ifndef MAIN_H
+#define MAIN_H
+
 typedef struct {
     float x;
     float y;
@@ -35,11 +38,11 @@ void update_ship();
 
 void update_asteroids();
 
-float wrap(float given, float max);
+float wrapf(float given, float max);
 
 void apply_friction(float *v, float amount);
 
-float clamp(float val, float min, float max);
+float clampf(float val, float min, float max);
 
 void render_asteroids();
 
@@ -56,3 +59,5 @@ void generate_medium_asteroid();
 void generate_large_asteroid();
 
 float randf(float min, float max);
+
+#endif
