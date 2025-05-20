@@ -1,3 +1,12 @@
+# misc
+*.aseprite
+
+# IDE
+.idea/
+
+# clangd
+.cache/
+
 # Prerequisites
 *.d
 
@@ -42,6 +51,7 @@
 *.su
 *.idb
 *.pdb
+cmake-build-debug/
 
 # Kernel Module Compile Results
 *.mod*

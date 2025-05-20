@@ -21,7 +21,7 @@ typedef uint32_t u32;
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
-#define THRUST 0.5
+#define THRUST 0.3
 
 #define MAX_ASTEROIDS 32
 
@@ -49,16 +49,6 @@ struct {
     int a;
     int d;
 } state;
-
-
-v2 ship_points[] = {
-    {-5, -10},
-    {0, 10},
-    {5, -10},
-    {2, -7},
-    {-2, -7},
-    {-5, -10}
-};
 
 int main(int argc, char* argv[]) {
 
@@ -120,10 +110,11 @@ void update_ship() {
     state.ship.position.x = wrap(state.ship.position.x + state.ship.velocity.x, SCREEN_WIDTH);
     state.ship.position.y = wrap(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
 
-    float radians = state.ship.angle * (M_PI / 180.0f);
+    const float radians = state.ship.angle * (M_PI / 180.0f);
     if (state.w) {
         state.ship.velocity.x -= sinf(radians) * THRUST;
         state.ship.velocity.y += cosf(radians) * THRUST;
+        render_booster();
     }
     if (state.a) {
         state.ship.angle -= 5;
@@ -196,26 +187,31 @@ void handle_input() {
                         break;
             }
             break;
+            default:
+                break;
         }
     }
 }
 
 void render_ship() {
-    v2 pos;
-    pos.x = state.ship.position.x;
-    pos.y = state.ship.position.y;
 
-    v2 new_points[6];
+    const v2 ship_points[] = {
+        {-5, -10},
+        {0, 10},
+        {5, -10},
+        {2, -7},
+        {-2, -7},
+        {-5, -10}
+    };
 
-    for (int i = 0; i < 6; i++) {
-        new_points[i] = ship_points[i];
-        new_points[i].x = ship_points[i].x * cos(state.ship.angle * (M_PI / 180.f)) - ship_points[i].y * sin(state.ship.angle * (M_PI / 180.f));
-        new_points[i].y = ship_points[i].x * sin(state.ship.angle * (M_PI / 180.f)) + ship_points[i].y * cos(state.ship.angle * (M_PI / 180.0f));
-    }
+    v2* new_points = render_angle_helper(ship_points, 6);
 
+    const v2 pos = state.ship.position;
     for (int i = 0; i < 5; i++) {
         SDL_RenderLine(state.renderer, pos.x + new_points[i].x, pos.y + new_points[i].y, pos.x + new_points[i + 1].x, pos.y + new_points[i + 1].y);
     }
+
+    free(new_points);
 }
 
 void render_asteroids() {
@@ -230,11 +226,37 @@ void render_asteroids() {
     }
 }
 
-void render_asteroids_helper(v2 pos, v2* points, int p_count) {
+void render_asteroids_helper(const v2 pos, const v2* points, const int p_count) {
     for (int i = 0; i < p_count; i++) {
-        int next = (i + 1) % p_count;
+        const int next = (i + 1) % p_count;
         SDL_RenderLine(state.renderer, pos.x + points[i].x, pos.y + points[i].y, pos.x + points[next].x, pos.y + points[next].y);
     }
+}
+
+void render_booster() {
+    const v2 booster_points[] = {
+        {-2, -7},
+        {0, -13},
+        {2, -7},
+    };
+
+    v2* new_points = render_angle_helper(booster_points, 3);
+
+    const v2 pos = state.ship.position;
+    SDL_RenderLine(state.renderer, pos.x + new_points[0].x, pos.y + new_points[0].y, pos.x + new_points[1].x, pos.y + new_points[1].y);
+    SDL_RenderLine(state.renderer, pos.x + new_points[1].x, pos.y + new_points[1].y, pos.x + new_points[2].x, pos.y + new_points[2].y);
+
+    free(new_points);
+}
+
+v2* render_angle_helper(const v2 *points, const int n) {
+    v2* new_points = malloc(n * sizeof(v2));
+    for (int i = 0; i < n; i++) {
+        new_points[i] = points[i];
+        new_points[i].x = points[i].x * cosf(state.ship.angle * (M_PI / 180.f)) - points[i].y * sinf(state.ship.angle * (M_PI / 180.f));
+        new_points[i].y = points[i].x * sinf(state.ship.angle * (M_PI / 180.f)) + points[i].y * cosf(state.ship.angle * (M_PI / 180.0f));
+    }
+    return new_points;
 }
 
 void generate_small_asteroid() {
@@ -242,9 +264,9 @@ void generate_small_asteroid() {
     if (state.small_asteroid_count >= MAX_ASTEROIDS)
         return;
 
-    small_asteroid small = {
+    const small_asteroid small = {
         .position = {SCREEN_WIDTH / 2.0 + 50.0, SCREEN_HEIGHT / 2.0 + 50.0},
-        .velocity = {randf(-2.0, 2.0), randf(-2.0, 2.0)},
+        .velocity = {randf(-2.0f, 2.0f), randf(-2.0f, 2.0f)},
         .angle = 0,
         .points = {
             {-4, 0},
@@ -266,9 +288,9 @@ void generate_medium_asteroid() {
     if (state.medium_asteroid_count >= MAX_ASTEROIDS)
         return;
 
-    medium_asteroid medium = {
+    const medium_asteroid medium = {
         .position = {SCREEN_WIDTH / 2.0 - 100.0, SCREEN_HEIGHT / 2.0 - 100.0},
-        .velocity = {randf(-1.5, 1.5), randf(-1.5, 1.5)},
+        .velocity = {randf(-1.5f, 1.5f), randf(-1.5f, 1.5f)},
         .angle = 0,
         .points = {
             {-2, -1},
@@ -292,9 +314,9 @@ void generate_large_asteroid() {
     if (state.large_asteroid_count >= MAX_ASTEROIDS)
         return;
 
-    large_asteroid large = {
+    const large_asteroid large = {
         .position = {SCREEN_WIDTH / 2.0 + 150.0, SCREEN_HEIGHT / 2.0 - 150.0},
-        .velocity = {randf(-1.0, 1.0), randf(-1.0, 1.0)},
+        .velocity = {randf(-1.0f, 1.0f), randf(-1.0f, 1.0f)},
         .angle = 0,
         .points = {
             {-11, -1},
@@ -314,22 +336,22 @@ void generate_large_asteroid() {
     state.large_asteroids[state.large_asteroid_count++] = large;
 }
 
-float wrap(float given, float max) {
+float wrap(const float given, const float max) {
     if (given < 0) return max;
     if (given > max) return 0;
     return given;
 }
 
-void apply_friction(float *v, float amount) {
+void apply_friction(float *v, const float amount) {
     if (*v > 0) *v = fmaxf(0, *v - amount);
     else if (*v < 0) *v = fminf(0, *v + amount);
 }
 
-float clamp(float val, float min, float max) {
+float clamp(const float val, const float min, const float max) {
     return fmaxf(min, fminf(max, val));
 }
 
-float randf(float min, float max) {
-    float scale = rand() / (float) RAND_MAX;
+float randf(const float min, const float max) {
+    const float scale = rand() / (float) RAND_MAX;
     return min + scale * (max - min);
 }

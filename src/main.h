@@ -43,7 +43,11 @@ float clamp(float val, float min, float max);
 
 void render_asteroids();
 
-void render_asteroids_helper(v2 pos, v2* points, int p_count);
+void render_asteroids_helper(v2 pos, const v2* points, int p_count);
+
+void render_booster();
+
+v2* render_angle_helper(const v2 *points, int n);
 
 void generate_small_asteroid();
 
