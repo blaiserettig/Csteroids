@@ -1,10 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-typedef struct {
-    float x;
-    float y;
-} v2;
+#include "util/v2.h"
 
 typedef struct {
     v2 position;
@@ -27,7 +24,6 @@ typedef struct {
     v2 points[12];
 } large_asteroid;
 
-
 void render_ship();
 
 void handle_input();
@@ -37,6 +33,10 @@ void update();
 void update_ship();
 
 void update_asteroids();
+
+void ship_collision_check();
+
+void highlight_collision(v2 v);
 
 float wrapf(float given, float max);
 

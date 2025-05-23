@@ -5,7 +5,8 @@ project(Asteroids)
 set(CMAKE_C_STANDARD 99)
 
 # Add your source files here
-add_executable(main src/main.c)
+add_executable(main src/main.c
+        include/util/v2.h)
 
 # Include the SDL3 header directory
 include_directories(${CMAKE_SOURCE_DIR}/include)
