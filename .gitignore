@@ -52,6 +52,7 @@
 *.idb
 *.pdb
 cmake-build-debug/
+build/
 
 # Kernel Module Compile Results
 *.mod*
