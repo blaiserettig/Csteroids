@@ -21,7 +21,7 @@ typedef uint32_t u32;
 
 #define THRUST 0.3
 
-#define MAX_ASTEROIDS 32
+#define MAX_ASTEROIDS 64
 
 typedef struct {
     v2 position;
@@ -288,21 +288,24 @@ v2* render_angle_helper(const v2 *points, const int n) {
 
 void ship_collision_check() {
 
-    // TODO: refactor literally all of this because it only sort of works. Probably need to just steal the points
-    // from render_ship which makes a lot more sense now that I think about it
+    v2 *points =  render_angle_helper(ship_points, 6);
 
     for (int i = 0; i < 6; i++) {
         const int next_ship = (i + 1) % 6;
 
         for (int j = 0; j < state.small_asteroid_count; j++) {
+
+            //printf("SMALL DISTANCE: %f \n", v2_dist_sqr(state.ship.position, state.small_asteroids[j].position));
+            if (v2_dist_sqr(state.ship.position, state.small_asteroids[j].position) > 20000.0f) continue;
+
             for (int k = 0; k < 9; k++) {
                 const int next_small = (k + 1) % 9;
                 const v2 a_p = state.small_asteroids[j].position;
                 const v2 s_p = state.ship.position;
 
                 v2 res = v2_intersection(
-                    v2_sum(ship_points[i], s_p),
-                    v2_sum(ship_points[next_ship], s_p),
+                    v2_sum(points[i], s_p),
+                    v2_sum(points[next_ship], s_p),
                     v2_sum(state.small_asteroids[j].points[k], a_p),
                     v2_sum(state.small_asteroids[j].points[next_small], a_p));
 
@@ -314,14 +317,17 @@ void ship_collision_check() {
             }
         }
         for (int j = 0; j < state.medium_asteroid_count; j++) {
+
+            if (v2_dist_sqr(state.ship.position, state.medium_asteroids[j].position) > 20000.0f) continue;
+
             for (int  k = 0; k < 11; k++) {
                 const int next_medium = (k + 1) % 11;
                 const v2 a_p = state.medium_asteroids[j].position;
                 const v2 s_p = state.ship.position;
 
                 v2 res = v2_intersection(
-                    v2_sum(ship_points[i], s_p),
-                    v2_sum(ship_points[next_ship], s_p),
+                    v2_sum(points[i], s_p),
+                    v2_sum(points[next_ship], s_p),
                     v2_sum(state.medium_asteroids[j].points[k], a_p),
                     v2_sum(state.medium_asteroids[j].points[next_medium], a_p));
 
@@ -333,14 +339,17 @@ void ship_collision_check() {
             }
         }
         for (int j = 0; j < state.large_asteroid_count; j++) {
+
+            if (v2_dist_sqr(state.ship.position, state.large_asteroids[j].position) > 20000.0f) continue;
+
             for (int k = 0; k < 12; k++) {
                 const int next_large = (k + 1) % 12;
                 const v2 a_p = state.large_asteroids[j].position;
                 const v2 s_p = state.ship.position;
 
                 v2 res = v2_intersection(
-                    v2_sum(ship_points[i], s_p),
-                    v2_sum(ship_points[next_ship], s_p),
+                    v2_sum(points[i], s_p),
+                    v2_sum(points[next_ship], s_p),
                     v2_sum(state.large_asteroids[j].points[k], a_p),
                     v2_sum(state.large_asteroids[j].points[next_large], a_p));
 
@@ -352,6 +361,7 @@ void ship_collision_check() {
             }
         }
     }
+    free(points);
 }
 
 void highlight_collision(const v2 v) {

@@ -18,11 +18,8 @@ static v2 v2_intersection(const v2 a0, const v2 a1, const v2 b0, const v2 b1) {
         return (v2) {NAN, NAN};
     }
 
-    const float t =
-        (a0.x - b0.x) * (b0.y - b1.y) - (a0.y - b0.y) * (b0.x - b1.x) / d;
-
-    const float u =
-        (a0.x - b0.x) * (a0.y - a1.y) - (a0.y - b0.y) *  (a0.x - a1.x) / d;
+    const float t = ((a0.x - b0.x) * (b0.y - b1.y) - (a0.y - b0.y) * (b0.x - b1.x)) / d;
+    const float u = ((a0.x - b0.x) * (a0.y - a1.y) - (a0.y - b0.y) * (a0.x - a1.x)) / d;
 
     return t >= 0 && t <= 1 && u >= 0 && u <= 1 ?
         (v2) {
@@ -33,6 +30,10 @@ static v2 v2_intersection(const v2 a0, const v2 a1, const v2 b0, const v2 b1) {
 
 static v2 v2_sum(const v2 a0, const v2 a1) {
     return (v2) {a0.x + a1.x, a0.y + a1.y};
+}
+
+static float v2_dist_sqr(const v2 a0, const v2 b0) {
+    return (b0.x - a0.x) * (b0.x - a0.x) + (b0.y - a0.y) * (b0.y - a0.y);
 }
 
 #endif //V2_H
