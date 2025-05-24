@@ -38,11 +38,7 @@ void ship_collision_check();
 
 void highlight_collision(v2 v);
 
-float wrapf(float given, float max);
-
 void apply_friction(float *v, float amount);
-
-float clampf(float val, float min, float max);
 
 void render_asteroids();
 
@@ -57,7 +53,5 @@ void generate_small_asteroid();
 void generate_medium_asteroid();
 
 void generate_large_asteroid();
-
-float randf(float min, float max);
 
 #endif

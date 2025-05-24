@@ -1,0 +1,3 @@
+C:/CPSC_Courses/Personal/Csteroids/build/CMakeFiles/main.dir
+C:/CPSC_Courses/Personal/Csteroids/build/CMakeFiles/ALL_BUILD.dir
+C:/CPSC_Courses/Personal/Csteroids/build/CMakeFiles/ZERO_CHECK.dir

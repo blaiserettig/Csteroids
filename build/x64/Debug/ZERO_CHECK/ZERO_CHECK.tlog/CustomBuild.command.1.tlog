@@ -1,0 +1,10 @@
+^C:\CPSC_COURSES\PERSONAL\CSTEROIDS\BUILD\CMAKEFILES\3D967AC2B07676B72AABF2C84ED491FD\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/CPSC_Courses/Personal/Csteroids -BC:/CPSC_Courses/Personal/Csteroids/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/CPSC_Courses/Personal/Csteroids/build/Asteroids.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

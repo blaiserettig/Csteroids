@@ -8,6 +8,7 @@
 #include "SDL3/SDL_video.h"
 
 #include "main.h"
+#include "util/f_ops.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -371,7 +372,7 @@ void highlight_collision(const v2 v) {
     for (int y = -radius; y <= radius; y++) {
         for (int x = -radius; x <= radius; x++) {
             if (x*x + y*y <= radius*radius) {
-                SDL_RenderPoint(state.renderer, v.x + x, v.y + y);
+                SDL_RenderPoint(state.renderer, v.x + (float)x, v.y + (float)y);
             }
         }
     }
@@ -459,19 +460,4 @@ void generate_large_asteroid() {
 void apply_friction(float *v, const float amount) {
     if (*v > 0) *v = fmaxf(0, *v - amount);
     else if (*v < 0) *v = fminf(0, *v + amount);
-}
-
-float wrapf(const float given, const float max) {
-    if (given < 0) return max;
-    if (given > max) return 0;
-    return given;
-}
-
-float clampf(const float val, const float min, const float max) {
-    return fmaxf(min, fminf(max, val));
-}
-
-float randf(const float min, const float max) {
-    const float scale = rand() / (float) RAND_MAX;
-    return min + scale * (max - min);
 }
