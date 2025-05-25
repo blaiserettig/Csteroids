@@ -8,7 +8,8 @@
 #include "SDL3/SDL_video.h"
 
 #include "main.h"
-#include "util/f_ops.h"
+#include "util/math_ext.h"
+#include "util/array_list.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -39,11 +40,7 @@ struct {
     u32 pixels[SCREEN_WIDTH * SCREEN_HEIGHT];
     bool quit;
     ship ship;
-    small_asteroid small_asteroids[MAX_ASTEROIDS];
-    int small_asteroid_count;
-    medium_asteroid medium_asteroids[MAX_ASTEROIDS];
-    int medium_asteroid_count;
-    large_asteroid large_asteroids[MAX_ASTEROIDS];
+    ArrayList *asteroids;
     int large_asteroid_count;
     int w;
     int a;
@@ -61,6 +58,8 @@ v2 ship_points[] = {
 
 int main(int argc, char* argv[]) {
 
+    srand((unsigned int)time(NULL));
+
     state.ship.position.x = SCREEN_WIDTH / 2.0;
     state.ship.position.y = SCREEN_HEIGHT / 2.0;
     state.ship.velocity.x = 0;
@@ -69,6 +68,8 @@ int main(int argc, char* argv[]) {
     state.w = 0;
     state.a = 0;
     state.d = 0;
+
+    state.asteroids = array_list_create(sizeof(asteroid));
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
@@ -97,6 +98,9 @@ int main(int argc, char* argv[]) {
         SDL_RenderPresent(state.renderer);
         SDL_Delay(16);
     }
+
+    destroy_all_asteroids();
+    array_list_free(state.asteroids);
 
     SDL_DestroyWindow(state.window);
     SDL_Quit();
@@ -141,35 +145,10 @@ void update_ship() {
 }
 
 void update_asteroids() {
-    for (int i = 0; i < state.small_asteroid_count; i++) {
-
-        state.small_asteroids[i].position.x =
-            wrapf(state.small_asteroids[i].position.x +=
-                state.small_asteroids[i].velocity.x, SCREEN_WIDTH);
-
-        state.small_asteroids[i].position.y =
-            wrapf(state.small_asteroids[i].position.y +=
-                state.small_asteroids[i].velocity.y, SCREEN_HEIGHT);
-    }
-    for (int i = 0; i < state.medium_asteroid_count; i++) {
-
-        state.medium_asteroids[i].position.x =
-            wrapf(state.medium_asteroids[i].position.x +=
-                state.medium_asteroids[i].velocity.x, SCREEN_WIDTH);
-
-        state.medium_asteroids[i].position.y =
-            wrapf(state.medium_asteroids[i].position.y +=
-                state.medium_asteroids[i].velocity.y, SCREEN_HEIGHT);
-    }
-    for (int i = 0; i < state.large_asteroid_count; i++) {
-
-        state.large_asteroids[i].position.x =
-            wrapf(state.large_asteroids[i].position.x +=
-                state.large_asteroids[i].velocity.x, SCREEN_WIDTH);
-
-        state.large_asteroids[i].position.y =
-            wrapf(state.large_asteroids[i].position.y +=
-                state.large_asteroids[i].velocity.y, SCREEN_HEIGHT);
+    for (size_t i = 0; i < array_list_size(state.asteroids); i++ ) {
+        asteroid *a = array_list_get(state.asteroids, i);
+        a->position.x = wrapf(a->position.x += a->velocity.x, SCREEN_WIDTH);
+        a->position.y = wrapf(a->position.y += a->velocity.y, SCREEN_HEIGHT);
     }
 }
 
@@ -192,9 +171,7 @@ void handle_input() {
                         state.a = 1;
                         break;
                     case SDL_SCANCODE_F:
-                        generate_small_asteroid();
-                        generate_large_asteroid();
-                        generate_medium_asteroid();
+                        add_new_asteroid(LARGE);
                         break;
                     default:
                         break;
@@ -234,23 +211,14 @@ void render_ship() {
 }
 
 void render_asteroids() {
-    for (int i = 0; i < state.small_asteroid_count; i++) {
-        render_asteroids_helper(state.small_asteroids[i].position, state.small_asteroids[i].points, 9);
-    }
-    for (int i = 0; i < state.medium_asteroid_count; i++) {
-        render_asteroids_helper(state.medium_asteroids[i].position, state.medium_asteroids[i].points, 11);
-    }
-    for (int i = 0; i < state.large_asteroid_count; i++) {
-        render_asteroids_helper(state.large_asteroids[i].position, state.large_asteroids[i].points, 12);
-    }
-}
-
-void render_asteroids_helper(const v2 pos, const v2* points, const int p_count) {
-    for (int i = 0; i < p_count; i++) {
-        const int next = (i + 1) % p_count;
-
-        SDL_RenderLine(state.renderer, pos.x + points[i].x, pos.y + points[i].y,
-            pos.x + points[next].x, pos.y + points[next].y);
+    for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
+        const asteroid *a  = array_list_get(state.asteroids, i);
+        for (int j = 0; j < a->point_count; j++) {
+            const int next = (j + 1) % a->point_count;
+            SDL_RenderLine(state.renderer,
+                a->position.x + a->points[j].x,  a->position.y + a->points[j].y,
+                a->position.x + a->points[next].x, a->position.y + a->points[next].y);
+        }
     }
 }
 
@@ -294,75 +262,29 @@ void ship_collision_check() {
 
     for (int i = 0; i < 6; i++) {
         const int next_ship = (i + 1) % 6;
+        for (int j = 0; j < array_list_size(state.asteroids); j++) {
+            const asteroid *a  = array_list_get(state.asteroids, j);
 
-        for (int j = 0; j < state.small_asteroid_count; j++) {
+            if (v2_dist_sqr(state.ship.position, a->position) > 20000.0f) continue;
 
-            //printf("SMALL DISTANCE: %f \n", v2_dist_sqr(state.ship.position, state.small_asteroids[j].position));
-            if (v2_dist_sqr(state.ship.position, state.small_asteroids[j].position) > 20000.0f) continue;
-
-            for (int k = 0; k < 9; k++) {
-                const int next_small = (k + 1) % 9;
-                const v2 a_p = state.small_asteroids[j].position;
+            for (int k = 0; k < a->point_count; k++) {
+                const int next_point = (k + 1) % a->point_count;
                 const v2 s_p = state.ship.position;
+                const v2 a_p = a->position;
 
                 v2 res = v2_intersection(
                     v2_sum(points[i], s_p),
                     v2_sum(points[next_ship], s_p),
-                    v2_sum(state.small_asteroids[j].points[k], a_p),
-                    v2_sum(state.small_asteroids[j].points[next_small], a_p));
+                    v2_sum(a->points[k], a_p),
+                    v2_sum(a->points[next_point], a_p));
 
-                if (isnan(res.x) || isnan(res.y)) {
-                    continue;
-                }
-                printf("COLLISION AT: %f, %f \n",  res.x, res.y);
-                highlight_collision(res);
-            }
-        }
-        for (int j = 0; j < state.medium_asteroid_count; j++) {
+                if (isnan(res.x) || isnan(res.y)) continue;
 
-            if (v2_dist_sqr(state.ship.position, state.medium_asteroids[j].position) > 20000.0f) continue;
-
-            for (int  k = 0; k < 11; k++) {
-                const int next_medium = (k + 1) % 11;
-                const v2 a_p = state.medium_asteroids[j].position;
-                const v2 s_p = state.ship.position;
-
-                v2 res = v2_intersection(
-                    v2_sum(points[i], s_p),
-                    v2_sum(points[next_ship], s_p),
-                    v2_sum(state.medium_asteroids[j].points[k], a_p),
-                    v2_sum(state.medium_asteroids[j].points[next_medium], a_p));
-
-                if (isnan(res.x) || isnan(res.y)) {
-                    continue;
-                }
-                printf("COLLISION AT: %f, %f \n",  res.x, res.y);
-                highlight_collision(res);
-            }
-        }
-        for (int j = 0; j < state.large_asteroid_count; j++) {
-
-            if (v2_dist_sqr(state.ship.position, state.large_asteroids[j].position) > 20000.0f) continue;
-
-            for (int k = 0; k < 12; k++) {
-                const int next_large = (k + 1) % 12;
-                const v2 a_p = state.large_asteroids[j].position;
-                const v2 s_p = state.ship.position;
-
-                v2 res = v2_intersection(
-                    v2_sum(points[i], s_p),
-                    v2_sum(points[next_ship], s_p),
-                    v2_sum(state.large_asteroids[j].points[k], a_p),
-                    v2_sum(state.large_asteroids[j].points[next_large], a_p));
-
-                if (isnan(res.x) || isnan(res.y)) {
-                    continue;
-                }
-                printf("COLLISION AT: %f, %f \n",  res.x, res.y);
                 highlight_collision(res);
             }
         }
     }
+
     free(points);
 }
 
@@ -381,85 +303,33 @@ void highlight_collision(const v2 v) {
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 }
 
-void generate_small_asteroid() {
+void add_new_asteroid(const AsteroidSize size) {
+    const int n = randi(8, 13);
+    v2 *points = malloc((size_t)n * sizeof(v2));
 
-    if (state.small_asteroid_count >= MAX_ASTEROIDS)
-        return;
+    for (int i = 0; i < n; i++) {
+        float radius = 0.3f + 0.2f * randf(0.0f, 1.0f);
+        if (randf(0.0f, 1.0f) < 0.2f) radius -= 0.2f;
+        const float angle =  (float)i * (2.0f * (float)M_PI / (float)n) + (float)M_PI * 0.125f * randf(0.0f, 1.0f);
 
-    const small_asteroid small = {
+        points[i] = v2_scale(v2_scale((v2) {cosf(angle), sinf(angle)}, radius), get_asteroid_scale(size));
+    }
+
+    array_list_add(state.asteroids, &(asteroid) {
         .position = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
-        .velocity = {randf(-2.0f, 2.0f), randf(-2.0f, 2.0f)},
+        .velocity = get_asteroid_velocity(size),
         .angle = 0,
-        .points = {
-            {-4, 0},
-            {-5, 2},
-            {-3, 4},
-            {-1, 3},
-            {2, 5},
-            {5, 1},
-            {4, -4},
-            {-1, -5},
-            {-5, -3}
-        }
-    };
-    state.small_asteroids[state.small_asteroid_count++] = small;
+        .scale = get_asteroid_scale(size),
+        .size = size,
+        .points = points,
+        .point_count = n,});
 }
 
-void generate_medium_asteroid() {
-
-    if (state.medium_asteroid_count >= MAX_ASTEROIDS)
-        return;
-
-    const medium_asteroid medium = {
-        .position = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
-        .velocity = {randf(-1.5f, 1.5f), randf(-1.5f, 1.5f)},
-        .angle = 0,
-        .points = {
-            {-2, -1},
-            {-7, -7},
-            {-8, -2},
-            {-5, -1},
-            {-8, 3},
-            {-3, 8},
-            {3, 8},
-            {8, 5},
-            {8, -3},
-            {1, -9},
-            {-2, -9}
-        }
-    };
-    state.medium_asteroids[state.medium_asteroid_count++] = medium;
-}
-
-void generate_large_asteroid() {
-
-    if (state.large_asteroid_count >= MAX_ASTEROIDS)
-        return;
-
-    const large_asteroid large = {
-        .position = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
-        .velocity = {randf(-1.0f, 1.0f), randf(-1.0f, 1.0f)},
-        .angle = 0,
-        .points = {
-            {-11, -1},
-            {-13, 7},
-            {-5, 14},
-            {1, 12},
-            {6, 14},
-            {13, 8},
-            {8, 5},
-            {15, -1},
-            {9, -11},
-            {-3, -13},
-            {-5, -17},
-            {-14, -8}
-        }
-    };
-    state.large_asteroids[state.large_asteroid_count++] = large;
-}
-
-void add_new_asteroid(enum AsteroidSize size, const unsigned int seed) {
-
+void destroy_all_asteroids() {
+    for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
+        const asteroid *a = array_list_get(state.asteroids, i);
+        free(a->points);
+    }
 }
 
 void apply_friction(float *v, const float amount) {

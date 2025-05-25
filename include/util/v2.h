@@ -36,4 +36,8 @@ static float v2_dist_sqr(const v2 a0, const v2 b0) {
     return (b0.x - a0.x) * (b0.x - a0.x) + (b0.y - a0.y) * (b0.y - a0.y);
 }
 
+static v2 v2_scale(const v2 a0, const float b0) {
+    return (v2) {a0.x * b0, a0.y * b0};
+}
+
 #endif //V2_H

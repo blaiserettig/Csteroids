@@ -2,6 +2,7 @@
 #define MAIN_H
 
 #include "util/v2.h"
+#include "asteroid.h"
 
 typedef struct {
     v2 position;
@@ -23,12 +24,6 @@ typedef struct {
     float angle;
     v2 points[12];
 } large_asteroid;
-
-enum AsteroidSize {
-    SMALL,
-    MEDIUM,
-    LARGE
-};
 
 void render_ship();
 
@@ -60,6 +55,8 @@ void generate_medium_asteroid();
 
 void generate_large_asteroid();
 
-void add_new_asteroid(enum AsteroidSize size, const unsigned int seed)
+void add_new_asteroid(AsteroidSize size);
+
+void destroy_all_asteroids();
 
 #endif

@@ -7,7 +7,11 @@ set(CMAKE_C_STANDARD 99)
 # Add your source files here
 add_executable(main src/main.c
         include/util/v2.h
-        include/util/f_ops.h
+        include/util/math_ext.h
+        src/asteroid.h
+        include/util/array_list.h
+        include/util/array_list.c
+        src/asteroid.c
 )
 
 # Include the SDL3 header directory

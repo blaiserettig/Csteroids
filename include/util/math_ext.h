@@ -1,6 +1,6 @@
 ﻿
-#ifndef F_OPS_H
-#define F_OPS_H
+#ifndef MATH_EXT_H
+#define MATH_EXT_H
 
 #include <math.h>
 #include <stdlib.h>
@@ -17,9 +17,12 @@ static float clampf(const float val, const float min, const float max) {
 }
 
 static float randf(const float min, const float max) {
-    srand(time(NULL));
     const float scale = (float)rand() / (float) RAND_MAX;
     return min + scale * (max - min);
 }
 
-#endif //F_OPS_H
+static int randi(const int min, const int max) {
+    return rand() % (max - min + 1) + min;
+}
+
+#endif //MATH_EXT_H
