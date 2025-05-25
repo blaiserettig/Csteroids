@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 typedef uint32_t u32;
 
@@ -455,6 +456,10 @@ void generate_large_asteroid() {
         }
     };
     state.large_asteroids[state.large_asteroid_count++] = large;
+}
+
+void add_new_asteroid(enum AsteroidSize size, const unsigned int seed) {
+
 }
 
 void apply_friction(float *v, const float amount) {

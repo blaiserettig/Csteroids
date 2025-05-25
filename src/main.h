@@ -7,7 +7,7 @@ typedef struct {
     v2 position;
     v2 velocity;
     float angle;
-    v2 points[9]; 
+    v2 points[9];
 } small_asteroid;
 
 typedef struct {
@@ -23,6 +23,12 @@ typedef struct {
     float angle;
     v2 points[12];
 } large_asteroid;
+
+enum AsteroidSize {
+    SMALL,
+    MEDIUM,
+    LARGE
+};
 
 void render_ship();
 
@@ -53,5 +59,7 @@ void generate_small_asteroid();
 void generate_medium_asteroid();
 
 void generate_large_asteroid();
+
+void add_new_asteroid(enum AsteroidSize size, const unsigned int seed)
 
 #endif

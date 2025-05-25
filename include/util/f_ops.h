@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <time.h>
 
 static float wrapf(const float given, const float max) {
     if (given < 0) return max;
@@ -16,6 +17,7 @@ static float clampf(const float val, const float min, const float max) {
 }
 
 static float randf(const float min, const float max) {
+    srand(time(NULL));
     const float scale = (float)rand() / (float) RAND_MAX;
     return min + scale * (max - min);
 }
