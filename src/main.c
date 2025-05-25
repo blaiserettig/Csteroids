@@ -24,8 +24,6 @@ typedef uint32_t u32;
 
 #define THRUST 0.3
 
-#define MAX_ASTEROIDS 64
-
 typedef struct {
     v2 position;
     v2 velocity;
@@ -73,21 +71,19 @@ int main(int argc, char* argv[]) {
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
-        return 1;
+        cleanup();
     }
 
     state.window = SDL_CreateWindow("Csteroids", SCREEN_WIDTH, SCREEN_HEIGHT, 0);
     if (!state.window) {
         SDL_Log("SDL_CreateWindow Error: %s", SDL_GetError());
-        SDL_Quit();
-        return 1;
+        cleanup();
     }
 
     state.renderer = SDL_CreateRenderer(state.window, NULL);
     if (!state.renderer) {
         SDL_Log("SDL_CreateRenderer Error: %s", SDL_GetError());
-        SDL_Quit();
-        return 1;
+        cleanup();
     }
 
     while (!state.quit) {
@@ -335,4 +331,12 @@ void destroy_all_asteroids() {
 void apply_friction(float *v, const float amount) {
     if (*v > 0) *v = fmaxf(0, *v - amount);
     else if (*v < 0) *v = fminf(0, *v + amount);
+}
+
+int cleanup() {
+    destroy_all_asteroids();
+    array_list_free(state.asteroids);
+    SDL_DestroyWindow(state.window);
+    SDL_Quit();
+    return 1;
 }

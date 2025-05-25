@@ -59,4 +59,6 @@ void add_new_asteroid(AsteroidSize size);
 
 void destroy_all_asteroids();
 
+int cleanup();
+
 #endif
