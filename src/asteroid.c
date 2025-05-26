@@ -14,15 +14,15 @@ float get_asteroid_scale(const AsteroidSize size) {
     }
 }
 
-v2 get_asteroid_velocity(const AsteroidSize size) {
+float get_asteroid_velocity_scale(const AsteroidSize size) {
     switch (size) {
         case SMALL:
-            return (v2) {randf(-3.0f, 3.0f), randf(-3.0f, 3.0f)};
+            return 1.6f;
         case MEDIUM:
-            return (v2) {randf(-2.0f, 2.0f), randf(-2.0f, 2.0f)};
+            return 1.0f;
         case LARGE:
-            return (v2) {randf(-1.0f, 1.0f), randf(-1.0f, 1.0f)};
+            return 0.6f;
         default:
-            return (v2) {0, 0};
+            return 0.0f;
     }
 }

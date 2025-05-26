@@ -17,12 +17,13 @@
 #include <stdlib.h>
 #include <time.h>
 
-typedef uint32_t u32;
+#include "util/time_ext.h"
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
 #define THRUST 0.3
+#define M_TAU (M_PI * 2)
 
 typedef struct {
     v2 position;
@@ -35,8 +36,9 @@ struct {
     SDL_Window *window;
     SDL_Texture *texture;
     SDL_Renderer *renderer;
-    u32 pixels[SCREEN_WIDTH * SCREEN_HEIGHT];
+    global_time *global_time;
     bool quit;
+    bool dead;
     ship ship;
     ArrayList *asteroids;
     int large_asteroid_count;
@@ -63,6 +65,7 @@ int main(int argc, char* argv[]) {
     state.ship.velocity.x = 0;
     state.ship.velocity.y = 0;
     state.ship.angle = 0;
+    state.dead = false;
     state.w = 0;
     state.a = 0;
     state.d = 0;
@@ -86,6 +89,10 @@ int main(int argc, char* argv[]) {
         cleanup();
     }
 
+    // Start
+    state.global_time = malloc(sizeof(global_time));
+    init_time(state.global_time);
+
     while (!state.quit) {
         SDL_SetRenderDrawColor(state.renderer, 0x00, 0x00, 0x00, 0xFF);
         SDL_RenderClear(state.renderer);
@@ -105,14 +112,18 @@ int main(int argc, char* argv[]) {
 }
 
 void update() {
+    update_time(state.global_time);
+
     handle_input();
 
-    update_ship();
+    if (!state.dead) update_ship();
     update_asteroids();
 
-    ship_collision_check();
+    if (ship_collision_check() > 0) {
 
-    render_ship();
+    }
+
+    if (!state.dead) render_ship();
     render_asteroids();
 }
 
@@ -168,6 +179,8 @@ void handle_input() {
                         break;
                     case SDL_SCANCODE_F:
                         add_new_asteroid(LARGE);
+                        add_new_asteroid(MEDIUM);
+                        add_new_asteroid(SMALL);
                         break;
                     default:
                         break;
@@ -252,9 +265,9 @@ v2* render_angle_helper(const v2 *points, const int n) {
     return new_points;
 }
 
-void ship_collision_check() {
+int ship_collision_check() {
 
-    v2 *points =  render_angle_helper(ship_points, 6);
+    v2 *points = render_angle_helper(ship_points, 6);
 
     for (int i = 0; i < 6; i++) {
         const int next_ship = (i + 1) % 6;
@@ -277,11 +290,13 @@ void ship_collision_check() {
                 if (isnan(res.x) || isnan(res.y)) continue;
 
                 highlight_collision(res);
+                free(points);
+                return 1;
             }
         }
     }
-
     free(points);
+    return -1;
 }
 
 void highlight_collision(const v2 v) {
@@ -300,20 +315,22 @@ void highlight_collision(const v2 v) {
 }
 
 void add_new_asteroid(const AsteroidSize size) {
-    const int n = randi(8, 13);
+    const int n = randi(12, 18);
     v2 *points = malloc((size_t)n * sizeof(v2));
 
     for (int i = 0; i < n; i++) {
         float radius = 0.3f + 0.2f * randf(0.0f, 1.0f);
         if (randf(0.0f, 1.0f) < 0.2f) radius -= 0.2f;
-        const float angle =  (float)i * (2.0f * (float)M_PI / (float)n) + (float)M_PI * 0.125f * randf(0.0f, 1.0f);
+        const float angle =  (float)i * ((float)M_TAU / (float)n) + (float)M_PI * 0.125f * randf(0.0f, 1.0f);
 
         points[i] = v2_scale(v2_scale((v2) {cosf(angle), sinf(angle)}, radius), get_asteroid_scale(size));
     }
 
+    const float angle = M_TAU * randf(0.0f, 1.0f);
+
     array_list_add(state.asteroids, &(asteroid) {
         .position = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
-        .velocity = get_asteroid_velocity(size),
+        .velocity = v2_scale((v2) {cosf(angle), sinf(angle)}, get_asteroid_velocity_scale(size)),
         .angle = 0,
         .scale = get_asteroid_scale(size),
         .size = size,
@@ -336,6 +353,7 @@ void apply_friction(float *v, const float amount) {
 int cleanup() {
     destroy_all_asteroids();
     array_list_free(state.asteroids);
+    free(state.global_time);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
     return 1;

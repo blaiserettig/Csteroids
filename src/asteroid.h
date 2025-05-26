@@ -22,6 +22,6 @@ typedef struct {
 
 float get_asteroid_scale(const AsteroidSize size);
 
-v2 get_asteroid_velocity(const AsteroidSize size);
+float get_asteroid_velocity_scale(const AsteroidSize size);
 
 #endif //ASTEROID_H

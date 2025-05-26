@@ -35,7 +35,7 @@ void update_ship();
 
 void update_asteroids();
 
-void ship_collision_check();
+int ship_collision_check();
 
 void highlight_collision(v2 v);
 
