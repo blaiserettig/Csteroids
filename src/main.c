@@ -15,9 +15,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-
-#include "util/time_ext.h"
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
@@ -36,16 +33,23 @@ struct {
     SDL_Window *window;
     SDL_Texture *texture;
     SDL_Renderer *renderer;
-    global_time *global_time;
     bool quit;
     bool dead;
     ship ship;
     ArrayList *asteroids;
-    int large_asteroid_count;
+    bool timer_active;
+    SDL_Time timer_end_time;
     int w;
     int a;
     int d;
 } state;
+
+struct {
+    SDL_Time now;
+    SDL_Time last;
+    double dt;
+    float scale;
+} global_time;
 
 v2 ship_points[] = {
     {-5, -10},
@@ -90,8 +94,9 @@ int main(int argc, char* argv[]) {
     }
 
     // Start
-    state.global_time = malloc(sizeof(global_time));
-    init_time(state.global_time);
+    global_time.dt = 0.0f;
+    SDL_GetCurrentTime(&global_time.now);
+    SDL_GetCurrentTime(&global_time.last);
 
     while (!state.quit) {
         SDL_SetRenderDrawColor(state.renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -112,7 +117,7 @@ int main(int argc, char* argv[]) {
 }
 
 void update() {
-    update_time(state.global_time);
+    update_time();
 
     handle_input();
 
@@ -120,11 +125,44 @@ void update() {
     update_asteroids();
 
     if (ship_collision_check() > 0) {
-
+        state.dead = true;
+        start_timer(3.0f);
     }
 
     if (!state.dead) render_ship();
     render_asteroids();
+}
+
+void update_time() {
+    SDL_GetCurrentTime(&global_time.now);
+    global_time.dt = ((double)global_time.now - (double)global_time.last) / 1e9;
+    global_time.last = global_time.now;
+
+    if (state.timer_active) {
+        SDL_Time current_time;
+        SDL_GetCurrentTime(&current_time);
+
+        if (current_time >= state.timer_end_time) {
+            state.timer_active = false;
+            reset_level();
+        } else {
+            const float remaining = (float)(state.timer_end_time - current_time) / 1e9f;
+            printf("TIMER: %f\n", remaining);
+        }
+    }
+}
+
+void reset_level() {
+    state.ship.position = (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
+    state.ship.velocity = (v2) {0, 0};
+    state.ship.angle = 0;
+    state.dead = false;
+}
+
+void start_timer(const float seconds) {
+    SDL_GetCurrentTime(&state.timer_end_time);
+    state.timer_end_time += (SDL_Time)(seconds * 1e9); // Convert seconds to nanoseconds
+    state.timer_active = true;
 }
 
 void update_ship() {
@@ -267,6 +305,8 @@ v2* render_angle_helper(const v2 *points, const int n) {
 
 int ship_collision_check() {
 
+    if (state.dead) return 0;
+
     v2 *points = render_angle_helper(ship_points, 6);
 
     for (int i = 0; i < 6; i++) {
@@ -353,7 +393,6 @@ void apply_friction(float *v, const float amount) {
 int cleanup() {
     destroy_all_asteroids();
     array_list_free(state.asteroids);
-    free(state.global_time);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
     return 1;

@@ -12,8 +12,6 @@ add_executable(main src/main.c
         include/util/array_list.h
         include/util/array_list.c
         src/asteroid.c
-        include/util/time_ext.h
-        include/util/time_ext.c
 )
 
 # Include the SDL3 header directory
