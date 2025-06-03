@@ -10,6 +10,7 @@
 #include "main.h"
 #include "util/math_ext.h"
 #include "util/array_list.h"
+#include "particle.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -37,6 +38,7 @@ struct {
     bool dead;
     ship ship;
     ArrayList *asteroids;
+    ArrayList *particles;
     bool timer_active;
     SDL_Time timer_end_time;
     int w;
@@ -75,22 +77,26 @@ int main(int argc, char* argv[]) {
     state.d = 0;
 
     state.asteroids = array_list_create(sizeof(asteroid));
+    state.particles = array_list_create(sizeof(struct Particle));
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
         cleanup();
+        return 1;
     }
 
     state.window = SDL_CreateWindow("Csteroids", SCREEN_WIDTH, SCREEN_HEIGHT, 0);
     if (!state.window) {
         SDL_Log("SDL_CreateWindow Error: %s", SDL_GetError());
         cleanup();
+        return 1;
     }
 
     state.renderer = SDL_CreateRenderer(state.window, NULL);
     if (!state.renderer) {
         SDL_Log("SDL_CreateRenderer Error: %s", SDL_GetError());
         cleanup();
+        return 1;
     }
 
     // Start
@@ -107,12 +113,7 @@ int main(int argc, char* argv[]) {
         SDL_Delay(16);
     }
 
-    destroy_all_asteroids();
-    array_list_free(state.asteroids);
-
-    SDL_DestroyWindow(state.window);
-    SDL_Quit();
-
+    cleanup();
     return 0;
 }
 
@@ -241,6 +242,15 @@ void handle_input() {
             break;
             default:
                 break;
+        }
+    }
+}
+
+void render_particles() {
+    for (int i = 0; i < array_list_size(state.particles); i++) {
+        const struct Particle *p  = array_list_get(state.particles, i);
+        for (int j = 0; j < p->point_count; j++) {
+            //SDL_RenderLine(state.renderer, )
         }
     }
 }
@@ -390,10 +400,10 @@ void apply_friction(float *v, const float amount) {
     else if (*v < 0) *v = fminf(0, *v + amount);
 }
 
-int cleanup() {
+void cleanup() {
     destroy_all_asteroids();
     array_list_free(state.asteroids);
+    array_list_free(state.particles);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
-    return 1;
 }

@@ -4,27 +4,6 @@
 #include "util/v2.h"
 #include "asteroid.h"
 
-typedef struct {
-    v2 position;
-    v2 velocity;
-    float angle;
-    v2 points[9];
-} small_asteroid;
-
-typedef struct {
-    v2 position;
-    v2 velocity;
-    float angle;
-    v2 points[11];
-} medium_asteroid;
-
-typedef struct {
-    v2 position;
-    v2 velocity;
-    float angle;
-    v2 points[12];
-} large_asteroid;
-
 void render_ship();
 void handle_input();
 void update();
@@ -45,6 +24,6 @@ void generate_medium_asteroid();
 void generate_large_asteroid();
 void add_new_asteroid(AsteroidSize size);
 void destroy_all_asteroids();
-int cleanup();
+void cleanup();
 
 #endif
