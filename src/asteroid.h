@@ -20,8 +20,8 @@ typedef struct {
     AsteroidSize size;
 } asteroid;
 
-float get_asteroid_scale(const AsteroidSize size);
+float get_asteroid_scale(AsteroidSize size);
 
-float get_asteroid_velocity_scale(const AsteroidSize size);
+float get_asteroid_velocity_scale(AsteroidSize size);
 
 #endif //ASTEROID_H

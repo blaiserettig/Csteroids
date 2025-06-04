@@ -4,9 +4,8 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <time.h>
 
-static float wrapf(const float given, const float max) {
+static float wrap0f(const float given, const float max) {
     if (given < 0) return max;
     if (given > max) return 0;
     return given;

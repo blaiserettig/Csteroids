@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
@@ -33,6 +34,7 @@ typedef struct {
     v2 vel;
     v2 p1;
     v2 p2;
+    float ttl;
 } death_line;
 
 typedef struct {
@@ -183,8 +185,8 @@ void start_timer(const float seconds) {
 }
 
 void update_ship() {
-    state.ship.position.x = wrapf(state.ship.position.x + state.ship.velocity.x, SCREEN_WIDTH);
-    state.ship.position.y = wrapf(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
+    state.ship.position.x = wrap0f(state.ship.position.x + state.ship.velocity.x, SCREEN_WIDTH);
+    state.ship.position.y = wrap0f(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
 
     const float radians = state.ship.angle * ((float)M_PI / 180.0f);
     if (state.w) {
@@ -209,8 +211,8 @@ void update_ship() {
 void update_asteroids() {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++ ) {
         asteroid *a = array_list_get(state.asteroids, i);
-        a->position.x = wrapf(a->position.x += a->velocity.x, SCREEN_WIDTH);
-        a->position.y = wrapf(a->position.y += a->velocity.y, SCREEN_HEIGHT);
+        a->position.x = wrap0f(a->position.x += a->velocity.x, SCREEN_WIDTH);
+        a->position.y = wrap0f(a->position.y += a->velocity.y, SCREEN_HEIGHT);
     }
 }
 
@@ -289,9 +291,10 @@ void render_ship_explosion() {
     const v2 pos = state.ship.position;
     for (int i = 0; i < 5; i++) {
         death_line d = state.death_lines[i];
-        SDL_RenderLine(state.renderer, pos.x + d.p1.x, pos.y + d.p1.y, pos.x + d.p2.x, pos.y + d.p2.y);
+        if (d.ttl > 0.0f) SDL_RenderLine(state.renderer, pos.x + d.p1.x, pos.y + d.p1.y, pos.x + d.p2.x, pos.y + d.p2.y);
         d.p1 = v2_sum(d.p1, d.vel);
         d.p2 = v2_sum(d.p2, d.vel);
+        d.ttl -= (float)global_time.dt;
         state.death_lines[i] = d;
     }
 }
@@ -451,9 +454,10 @@ void add_death_lines(const float scale) {
 
         const death_line d = {
         .pos = state.ship.position,
-        .vel = (v2) {cosf(angle), sinf(angle)},
+        .vel = (v2) {-sinf(angle) * ((0.2f + state.ship.velocity.y) / 3.0f), cosf(angle) * ((0.2f + state.ship.velocity.x) / 3.0f)},
         .p1 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale},
-        .p2 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale}};
+        .p2 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale},
+        .ttl = randf(1.8f, 3.2f)};
 
         state.death_lines[i] = d;
     }

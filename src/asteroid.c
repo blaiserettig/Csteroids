@@ -1,5 +1,4 @@
 #include "asteroid.h"
-#include "util/math_ext.h"
 
 float get_asteroid_scale(const AsteroidSize size) {
     switch (size) {
