@@ -23,6 +23,7 @@ void generate_small_asteroid();
 void generate_medium_asteroid();
 void generate_large_asteroid();
 void add_new_asteroid(AsteroidSize size);
+void add_death_lines(float scale);
 void destroy_all_asteroids();
 void cleanup();
 

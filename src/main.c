@@ -10,10 +10,8 @@
 #include "main.h"
 #include "util/math_ext.h"
 #include "util/array_list.h"
-#include "particle.h"
 
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -30,6 +28,13 @@ typedef struct {
     float speedScale;
 } ship;
 
+typedef struct {
+    v2 pos;
+    v2 vel;
+    v2 p1;
+    v2 p2;
+} death_line;
+
 struct {
     SDL_Window *window;
     SDL_Texture *texture;
@@ -38,7 +43,7 @@ struct {
     bool dead;
     ship ship;
     ArrayList *asteroids;
-    ArrayList *particles;
+    death_line death_lines[5];
     bool timer_active;
     SDL_Time timer_end_time;
     int w;
@@ -77,7 +82,6 @@ int main(int argc, char* argv[]) {
     state.d = 0;
 
     state.asteroids = array_list_create(sizeof(asteroid));
-    state.particles = array_list_create(sizeof(struct Particle));
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
@@ -127,11 +131,23 @@ void update() {
 
     if (ship_collision_check() > 0) {
         state.dead = true;
+        add_death_lines(25.0f);
         start_timer(3.0f);
     }
 
     if (!state.dead) render_ship();
     render_asteroids();
+
+    if (state.dead) {
+        const v2 pos = state.ship.position;
+        for (int i = 0; i < 5; i++) {
+            death_line d = state.death_lines[i];
+            SDL_RenderLine(state.renderer, pos.x + d.p1.x, pos.y + d.p1.y, pos.x + d.p2.x, pos.y + d.p2.y);
+            d.p1 = v2_sum(d.p1, d.vel);
+            d.p2 = v2_sum(d.p2, d.vel);
+            state.death_lines[i] = d;
+        }
+    }
 }
 
 void update_time() {
@@ -242,15 +258,6 @@ void handle_input() {
             break;
             default:
                 break;
-        }
-    }
-}
-
-void render_particles() {
-    for (int i = 0; i < array_list_size(state.particles); i++) {
-        const struct Particle *p  = array_list_get(state.particles, i);
-        for (int j = 0; j < p->point_count; j++) {
-            //SDL_RenderLine(state.renderer, )
         }
     }
 }
@@ -388,6 +395,21 @@ void add_new_asteroid(const AsteroidSize size) {
         .point_count = n,});
 }
 
+void add_death_lines(const float scale) {
+    for (int i = 0; i < 5; i++) {
+
+        const float angle = randf(0.01f, 1.0f) * (float)M_TAU;
+
+        const death_line d = {
+        .pos = state.ship.position,
+        .vel = (v2) {cosf(angle), sinf(angle)},
+        .p1 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale},
+        .p2 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale}};
+
+        state.death_lines[i] = d;
+    }
+}
+
 void destroy_all_asteroids() {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
         const asteroid *a = array_list_get(state.asteroids, i);
@@ -403,7 +425,6 @@ void apply_friction(float *v, const float amount) {
 void cleanup() {
     destroy_all_asteroids();
     array_list_free(state.asteroids);
-    array_list_free(state.particles);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
 }
