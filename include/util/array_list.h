@@ -21,4 +21,6 @@ void* array_list_get(ArrayList *list, size_t index);
 
 size_t array_list_size(const ArrayList *list);
 
+int array_list_remove(ArrayList *list, size_t index);
+
 #endif //ARRAY_LIST_H

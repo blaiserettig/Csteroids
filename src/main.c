@@ -35,6 +35,11 @@ typedef struct {
     v2 p2;
 } death_line;
 
+typedef struct {
+    v2 pos;
+    v2 vel;
+} projectile;
+
 struct {
     SDL_Window *window;
     SDL_Texture *texture;
@@ -43,6 +48,7 @@ struct {
     bool dead;
     ship ship;
     ArrayList *asteroids;
+    ArrayList *projectiles;
     death_line death_lines[5];
     bool timer_active;
     SDL_Time timer_end_time;
@@ -82,6 +88,7 @@ int main(int argc, char* argv[]) {
     state.d = 0;
 
     state.asteroids = array_list_create(sizeof(asteroid));
+    state.projectiles = array_list_create(sizeof(projectile));
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
@@ -128,6 +135,7 @@ void update() {
 
     if (!state.dead) update_ship();
     update_asteroids();
+    update_projectiles();
 
     if (ship_collision_check() > 0) {
         state.dead = true;
@@ -137,17 +145,9 @@ void update() {
 
     if (!state.dead) render_ship();
     render_asteroids();
+    render_projectiles();
 
-    if (state.dead) {
-        const v2 pos = state.ship.position;
-        for (int i = 0; i < 5; i++) {
-            death_line d = state.death_lines[i];
-            SDL_RenderLine(state.renderer, pos.x + d.p1.x, pos.y + d.p1.y, pos.x + d.p2.x, pos.y + d.p2.y);
-            d.p1 = v2_sum(d.p1, d.vel);
-            d.p2 = v2_sum(d.p2, d.vel);
-            state.death_lines[i] = d;
-        }
-    }
+    if (state.dead) render_ship_explosion();
 }
 
 void update_time() {
@@ -214,6 +214,15 @@ void update_asteroids() {
     }
 }
 
+void update_projectiles() {
+    for (size_t i = 0; i < array_list_size(state.projectiles); i++ ) {
+        projectile *p = array_list_get(state.projectiles, i);
+        p->pos.x += p->vel.x;
+        p->pos.y += p->vel.y;
+        if (p->pos.x < 0 || p->pos.x > SCREEN_WIDTH ||  p->pos.y < 0 || p->pos.y > SCREEN_HEIGHT) array_list_remove(state.projectiles, i);
+    }
+}
+
 void handle_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -231,6 +240,9 @@ void handle_input() {
                         break;
                     case SDL_SCANCODE_A:
                         state.a = 1;
+                        break;
+                    case SDL_SCANCODE_SPACE:
+                        add_projectile();
                         break;
                     case SDL_SCANCODE_F:
                         add_new_asteroid(LARGE);
@@ -252,13 +264,35 @@ void handle_input() {
                     case SDL_SCANCODE_A:
                         state.a = 0;
                         break;
+                    case SDL_SCANCODE_SPACE:
+                        // do nothing (for now)
+                        break;
                     default:
                         break;
-            }
-            break;
+                }
+                break;
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                switch (event.button.button) {
+                    case SDL_BUTTON_LEFT:
+                        // do nothing (for now)
+                        break;
+                    default:
+                        break;
+                }
             default:
                 break;
         }
+    }
+}
+
+void render_ship_explosion() {
+    const v2 pos = state.ship.position;
+    for (int i = 0; i < 5; i++) {
+        death_line d = state.death_lines[i];
+        SDL_RenderLine(state.renderer, pos.x + d.p1.x, pos.y + d.p1.y, pos.x + d.p2.x, pos.y + d.p2.y);
+        d.p1 = v2_sum(d.p1, d.vel);
+        d.p2 = v2_sum(d.p2, d.vel);
+        state.death_lines[i] = d;
     }
 }
 
@@ -304,6 +338,21 @@ void render_booster() {
         pos.x + new_points[2].x, pos.y + new_points[2].y);
 
     free(new_points);
+}
+
+void render_projectiles() {
+
+    for (int i = 0; i < array_list_size(state.projectiles); i++) {
+        const projectile *p  = array_list_get(state.projectiles, i);
+        const int radius = 1;
+        for (int y = -radius; y <= radius; y++) {
+            for (int x = -radius; x <= radius; x++) {
+                if (x*x + y*y <= radius*radius) {
+                    SDL_RenderPoint(state.renderer, p->pos.x + (float)x, p->pos.y + (float)y);
+                }
+            }
+        }
+    }
 }
 
 v2* render_angle_helper(const v2 *points, const int n) {
@@ -410,6 +459,12 @@ void add_death_lines(const float scale) {
     }
 }
 
+void add_projectile() {
+    array_list_add(state.projectiles, &(projectile) {
+    .pos = state.ship.position,
+    .vel = v2_scale((v2) {-sinf((state.ship.angle * (float)M_PI) / 180.0f), cosf((state.ship.angle * (float)M_PI) / 180.0f)}, 4.0f)});
+}
+
 void destroy_all_asteroids() {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
         const asteroid *a = array_list_get(state.asteroids, i);
@@ -425,6 +480,7 @@ void apply_friction(float *v, const float amount) {
 void cleanup() {
     destroy_all_asteroids();
     array_list_free(state.asteroids);
+    array_list_free(state.projectiles);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
 }
