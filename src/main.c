@@ -145,6 +145,8 @@ void update() {
         start_timer(3.0f);
     }
 
+    projectile_collision_check();
+
     if (!state.dead) render_ship();
     render_asteroids();
     render_projectiles();
@@ -247,9 +249,9 @@ void handle_input() {
                         add_projectile();
                         break;
                     case SDL_SCANCODE_F:
-                        add_new_asteroid(LARGE);
-                        add_new_asteroid(MEDIUM);
-                        add_new_asteroid(SMALL);
+                        add_new_asteroid(LARGE, (v2) {NAN, NAN});
+                        add_new_asteroid(MEDIUM, (v2) {NAN, NAN});
+                        add_new_asteroid(SMALL, (v2) {NAN, NAN});
                         break;
                     default:
                         break;
@@ -372,6 +374,23 @@ v2* render_angle_helper(const v2 *points, const int n) {
     return new_points;
 }
 
+void projectile_collision_check() {
+    for (int i = 0; i < array_list_size(state.projectiles); i++) {
+        const projectile *p = array_list_get(state.projectiles, i);
+        for (int j = 0; j < array_list_size(state.asteroids); j++) {
+            const asteroid *a  = array_list_get(state.asteroids, j);
+
+            const float check_distance = get_asteroid_check_distance(a->size);
+
+            if (v2_dist_sqr(p->pos, a->position) < check_distance) {
+                highlight_collision(p->pos);
+                array_list_remove(state.projectiles, i);
+                on_asteroid_hit(a, j);
+            }
+        }
+    }
+}
+
 int ship_collision_check() {
 
     if (state.dead) return 0;
@@ -423,7 +442,25 @@ void highlight_collision(const v2 v) {
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 }
 
-void add_new_asteroid(const AsteroidSize size) {
+void on_asteroid_hit(const asteroid *a, const int i) {
+    switch (a->size) {
+        case SMALL:
+            array_list_remove(state.asteroids, i);
+            break;
+        case MEDIUM:
+            add_new_asteroid(SMALL,  a->position);
+            add_new_asteroid(SMALL,  a->position);
+            array_list_remove(state.asteroids, i);
+            break;
+        case LARGE:
+            add_new_asteroid(MEDIUM,  a->position);
+            add_new_asteroid(MEDIUM,  a->position);
+            array_list_remove(state.asteroids, i);
+            break;
+    }
+}
+
+void add_new_asteroid(const AsteroidSize size, v2 pos) {
     const int n = randi(12, 18);
     v2 *points = malloc((size_t)n * sizeof(v2));
 
@@ -438,7 +475,7 @@ void add_new_asteroid(const AsteroidSize size) {
     const float angle = M_TAU * randf(0.0f, 1.0f);
 
     array_list_add(state.asteroids, &(asteroid) {
-        .position = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
+        .position = !isnan(pos.x) ? pos : (v2){randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
         .velocity = v2_scale((v2) {cosf(angle), sinf(angle)}, get_asteroid_velocity_scale(size)),
         .angle = 0,
         .scale = get_asteroid_scale(size),

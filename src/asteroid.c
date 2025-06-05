@@ -25,3 +25,16 @@ float get_asteroid_velocity_scale(const AsteroidSize size) {
             return 0.0f;
     }
 }
+
+float get_asteroid_check_distance(const AsteroidSize size) {
+    switch (size) {
+        case SMALL:
+            return 200.0f;
+        case MEDIUM:
+            return 500.0f;
+        case LARGE:
+            return 700.0f;
+        default:
+            return 0.0f;
+    }
+}

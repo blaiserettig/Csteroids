@@ -24,4 +24,6 @@ float get_asteroid_scale(AsteroidSize size);
 
 float get_asteroid_velocity_scale(AsteroidSize size);
 
+float get_asteroid_check_distance(AsteroidSize size);
+
 #endif //ASTEROID_H
