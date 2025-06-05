@@ -77,7 +77,6 @@ v2 ship_points[] = {
 };
 
 int main(int argc, char* argv[]) {
-
     srand((unsigned int)time(NULL));
 
     state.ship.position.x = SCREEN_WIDTH / 2.0;
@@ -206,7 +205,7 @@ void update_ship() {
     if (state.d) {
         state.ship.angle += 5;
     }
-    
+
     apply_friction(&state.ship.velocity.x, 0.06f);
     apply_friction(&state.ship.velocity.y, 0.06f);
 
@@ -260,7 +259,8 @@ void handle_input() {
                         state.a = 1;
                         break;
                     case SDL_SCANCODE_SPACE:
-                        add_projectile();
+                        const SDL_KeyboardEvent e = event.key;
+                        if (!e.repeat) add_projectile();
                         break;
                     case SDL_SCANCODE_F:
                         add_new_asteroid(LARGE, (v2) {NAN, NAN});
@@ -549,8 +549,8 @@ void add_asteroid_explosion_particles(const asteroid *a) {
         array_list_add(state.asteroid_particles, &(death_line) {
         .pos = {a->position.x + randf(-20.0f, 20.0f), a->position.y + randf(-20.0f, 20.0f)},
         .vel = (v2) {-sinf(angle), cosf(angle)},
-        .p1 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale},
-        .p2 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale},
+        .p1 = (v2) {randf(0.0f, 0.15f) * scale, randf(0.0f, 0.15f) * scale},
+        .p2 = (v2) {randf(0.0f, 0.15f) * scale, randf(0.0f, 0.15f) * scale},
         .ttl = randf(0.6f, 1.0f)});
     }
 }
@@ -559,6 +559,8 @@ void add_projectile() {
     array_list_add(state.projectiles, &(projectile) {
     .pos = state.ship.position,
     .vel = v2_scale((v2) {-sinf((state.ship.angle * (float)M_PI) / 180.0f), cosf((state.ship.angle * (float)M_PI) / 180.0f)}, 4.0f)});
+    state.ship.velocity.x += sinf((state.ship.angle * (float)M_PI) / 180.0f);     // apply kickback in the opposite direction
+    state.ship.velocity.y -= cosf((state.ship.angle * (float)M_PI) / 180.0f);
 }
 
 void destroy_all_asteroids() {

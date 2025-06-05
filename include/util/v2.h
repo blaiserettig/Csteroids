@@ -40,4 +40,8 @@ static v2 v2_scale(const v2 a0, const float b0) {
     return (v2) {a0.x * b0, a0.y * b0};
 }
 
+static v2 v2_inverse(const v2 a0) {
+    return (v2) {-1.0 *  a0.x, -1.0 * a0.y};
+}
+
 #endif //V2_H
