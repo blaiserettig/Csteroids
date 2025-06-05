@@ -51,6 +51,7 @@ struct {
     ship ship;
     ArrayList *asteroids;
     ArrayList *projectiles;
+    ArrayList *asteroid_particles;
     death_line death_lines[5];
     bool timer_active;
     SDL_Time timer_end_time;
@@ -91,6 +92,7 @@ int main(int argc, char* argv[]) {
 
     state.asteroids = array_list_create(sizeof(asteroid));
     state.projectiles = array_list_create(sizeof(projectile));
+    state.asteroid_particles = array_list_create(sizeof(death_line));
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
@@ -138,6 +140,7 @@ void update() {
     if (!state.dead) update_ship();
     update_asteroids();
     update_projectiles();
+    update_asteroid_explosion_particles();
 
     if (ship_collision_check() > 0) {
         state.dead = true;
@@ -150,8 +153,9 @@ void update() {
     if (!state.dead) render_ship();
     render_asteroids();
     render_projectiles();
+    render_asteroid_explosion_particles();
 
-    if (state.dead) render_ship_explosion();
+    if (state.dead) draw_ship_explosion();
 }
 
 void update_time() {
@@ -227,6 +231,16 @@ void update_projectiles() {
     }
 }
 
+void update_asteroid_explosion_particles() {
+    for (size_t i = 0; i < array_list_size(state.asteroid_particles); i++ ) {
+        death_line *d = array_list_get(state.asteroid_particles, i);
+        d->p1 = v2_sum(d->p1, d->vel);
+        d->p2 = v2_sum(d->p2, d->vel);
+        d->ttl -= (float)global_time.dt;
+        if (d->ttl < 0) array_list_remove(state.asteroid_particles, i);
+    }
+}
+
 void handle_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -289,7 +303,7 @@ void handle_input() {
     }
 }
 
-void render_ship_explosion() {
+void draw_ship_explosion() {
     const v2 pos = state.ship.position;
     for (int i = 0; i < 5; i++) {
         death_line d = state.death_lines[i];
@@ -299,6 +313,15 @@ void render_ship_explosion() {
         d.ttl -= (float)global_time.dt;
         state.death_lines[i] = d;
     }
+}
+
+void render_asteroid_explosion_particles() {
+    SDL_SetRenderDrawColor(state.renderer, 128, 128, 128, 255);
+    for (size_t i = 0; i < array_list_size(state.asteroid_particles); i++ ) {
+        const death_line *d = array_list_get(state.asteroid_particles, i);
+        SDL_RenderLine(state.renderer, d->pos.x + d->p1.x, d->pos.y + d->p1.y, d->pos.x + d->p2.x,  d->pos.y + d->p2.y);
+    }
+    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 }
 
 void render_ship() {
@@ -419,6 +442,7 @@ int ship_collision_check() {
 
                 highlight_collision(res);
                 free(points);
+                on_asteroid_hit(a, j);
                 return 1;
             }
         }
@@ -443,6 +467,7 @@ void highlight_collision(const v2 v) {
 }
 
 void on_asteroid_hit(const asteroid *a, const int i) {
+    add_asteroid_explosion_particles(a);
     switch (a->size) {
         case SMALL:
             array_list_remove(state.asteroids, i);
@@ -500,6 +525,36 @@ void add_death_lines(const float scale) {
     }
 }
 
+void add_asteroid_explosion_particles(const asteroid *a) {
+    int n = 0;
+    float scale = 0.0f;
+    switch (a->size) {
+        case SMALL:
+            n = randi(2, 4);
+            scale = 15.0f;
+            break;
+        case MEDIUM:
+            n = randi(4, 6);
+            scale = 25.0f;
+            break;
+        case LARGE:
+            n = randi(6, 8);
+            scale = 50.0f;
+            break;
+        default:
+            break;
+    }
+    for (int i = 0; i < n; i++) {
+        const float angle = randf(0.01f, 1.0f) * (float)M_TAU;
+        array_list_add(state.asteroid_particles, &(death_line) {
+        .pos = {a->position.x + randf(-20.0f, 20.0f), a->position.y + randf(-20.0f, 20.0f)},
+        .vel = (v2) {-sinf(angle), cosf(angle)},
+        .p1 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale},
+        .p2 = (v2) {randf(0.0f, 1.0f) * scale, randf(0.0f, 1.0f) * scale},
+        .ttl = randf(0.6f, 1.0f)});
+    }
+}
+
 void add_projectile() {
     array_list_add(state.projectiles, &(projectile) {
     .pos = state.ship.position,
@@ -522,6 +577,7 @@ void cleanup() {
     destroy_all_asteroids();
     array_list_free(state.asteroids);
     array_list_free(state.projectiles);
+    array_list_free(state.asteroid_particles);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
 }
