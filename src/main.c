@@ -144,6 +144,7 @@ void update() {
     if (ship_collision_check() > 0) {
         state.dead = true;
         add_death_lines(25.0f);
+        add_particles(state.ship.position, randi(30, 40));
         start_timer(3.0f);
     }
 
@@ -282,9 +283,6 @@ void handle_input() {
                     case SDL_SCANCODE_A:
                         state.a = 0;
                         break;
-                    case SDL_SCANCODE_SPACE:
-                        // do nothing (for now)
-                        break;
                     default:
                         break;
                 }
@@ -339,6 +337,7 @@ void render_ship() {
 void render_asteroids() {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
         const asteroid *a  = array_list_get(state.asteroids, i);
+        SDL_SetRenderDrawColor(state.renderer, a->color, a->color, a->color, 255);
         for (int j = 0; j < a->point_count; j++) {
             const int next = (j + 1) % a->point_count;
             SDL_RenderLine(state.renderer,
@@ -346,6 +345,7 @@ void render_asteroids() {
                 a->position.x + a->points[next].x, a->position.y + a->points[next].y);
         }
     }
+    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 }
 
 void render_booster() {
@@ -467,7 +467,7 @@ void highlight_collision(const v2 v) {
 }
 
 void on_asteroid_hit(const asteroid *a, const int i) {
-    add_asteroid_explosion_particles(a);
+    add_particles(a->position, randi(15, 20));
     switch (a->size) {
         case SMALL:
             array_list_remove(state.asteroids, i);
@@ -506,7 +506,8 @@ void add_new_asteroid(const AsteroidSize size, v2 pos) {
         .scale = get_asteroid_scale(size),
         .size = size,
         .points = points,
-        .point_count = n,});
+        .point_count = n,
+        .color = randi(128, 255)});
 }
 
 void add_death_lines(const float scale) {
@@ -525,32 +526,15 @@ void add_death_lines(const float scale) {
     }
 }
 
-void add_asteroid_explosion_particles(const asteroid *a) {
-    int n = 0;
-    float scale = 0.0f;
-    switch (a->size) {
-        case SMALL:
-            n = randi(2, 4);
-            scale = 15.0f;
-            break;
-        case MEDIUM:
-            n = randi(4, 6);
-            scale = 25.0f;
-            break;
-        case LARGE:
-            n = randi(6, 8);
-            scale = 50.0f;
-            break;
-        default:
-            break;
-    }
+void add_particles(const v2 pos, const int n) {
     for (int i = 0; i < n; i++) {
+        const float scale = 25.0f;
         const float angle = randf(0.01f, 1.0f) * (float)M_TAU;
         array_list_add(state.asteroid_particles, &(death_line) {
-        .pos = {a->position.x + randf(-20.0f, 20.0f), a->position.y + randf(-20.0f, 20.0f)},
+        .pos = {pos.x + randf(-20.0f, 20.0f), pos.y + randf(-20.0f, 20.0f)},
         .vel = (v2) {-sinf(angle), cosf(angle)},
-        .p1 = (v2) {randf(0.0f, 0.15f) * scale, randf(0.0f, 0.15f) * scale},
-        .p2 = (v2) {randf(0.0f, 0.15f) * scale, randf(0.0f, 0.15f) * scale},
+        .p1 = (v2) {randf(0.0f, 0.05f) * scale, randf(0.0f, 0.05f) * scale},
+        .p2 = (v2) {randf(0.0f, 0.05f) * scale, randf(0.0f, 0.05f) * scale},
         .ttl = randf(0.6f, 1.0f)});
     }
 }

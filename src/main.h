@@ -31,7 +31,7 @@ void generate_large_asteroid();
 void on_asteroid_hit(const asteroid *a, int i);
 void add_new_asteroid(AsteroidSize size, v2 pos);
 void add_death_lines(float scale);
-void add_asteroid_explosion_particles(const asteroid *a);
+void add_particles(v2 pos, int n);
 void add_projectile();
 void destroy_all_asteroids();
 void cleanup();

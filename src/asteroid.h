@@ -2,6 +2,8 @@
 #ifndef ASTEROID_H
 #define ASTEROID_H
 
+#include <stdint.h>
+
 #include "util/v2.h"
 
 typedef enum {
@@ -17,6 +19,7 @@ typedef struct {
     int point_count;
     float angle;
     float scale;
+    uint8_t color;
     AsteroidSize size;
 } asteroid;
 
