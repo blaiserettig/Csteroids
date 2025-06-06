@@ -54,7 +54,11 @@ struct {
     ArrayList *asteroid_particles;
     death_line death_lines[5];
     bool timer_active;
+    bool lock;
     SDL_Time timer_end_time;
+    int lives;
+    int score;
+    int prev_ast;
     int w;
     int a;
     int d;
@@ -85,9 +89,12 @@ int main(int argc, char* argv[]) {
     state.ship.velocity.y = 0;
     state.ship.angle = 0;
     state.dead = false;
+    state.lock = false;
     state.w = 0;
     state.a = 0;
     state.d = 0;
+    state.lives = 3;
+    state.score = 0;
 
     state.asteroids = array_list_create(sizeof(asteroid));
     state.projectiles = array_list_create(sizeof(projectile));
@@ -117,6 +124,10 @@ int main(int argc, char* argv[]) {
     global_time.dt = 0.0f;
     SDL_GetCurrentTime(&global_time.now);
     SDL_GetCurrentTime(&global_time.last);
+    state.prev_ast = 2;
+    for (int i = 0; i < state.prev_ast; i++) {
+        add_new_asteroid(LARGE, (v2) {NAN, NAN});
+    }
 
     while (!state.quit) {
         SDL_SetRenderDrawColor(state.renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -150,10 +161,13 @@ void update() {
 
     projectile_collision_check();
 
+    if (array_list_size(state.asteroids) < 1) on_level_complete();
+
     if (!state.dead) render_ship();
     render_asteroids();
     render_projectiles();
     render_asteroid_explosion_particles();
+    render_lives();
 
     if (state.dead) draw_ship_explosion();
 }
@@ -177,11 +191,26 @@ void update_time() {
     }
 }
 
+void on_level_complete() {
+    const int n = state.score < randi(40000, 60000) ? ++state.prev_ast : state.prev_ast;
+    for (int i = 0; i < n; i++) {
+        add_new_asteroid(LARGE, (v2) {NAN, NAN});
+    }
+}
+
 void reset_level() {
-    state.ship.position = (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
-    state.ship.velocity = (v2) {0, 0};
-    state.ship.angle = 0;
-    state.dead = false;
+    if (--state.lives < 1) {
+        start_game_over();
+    } else {
+        state.ship.velocity = (v2) {0, 0};
+        state.ship.position = (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
+        state.ship.angle = 0;
+        state.dead = false;
+    }
+}
+
+void start_game_over() {
+    state.lock = true;
 }
 
 void start_timer(const float seconds) {
@@ -195,15 +224,15 @@ void update_ship() {
     state.ship.position.y = wrap0f(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
 
     const float radians = state.ship.angle * ((float)M_PI / 180.0f);
-    if (state.w) {
+    if (state.w && !state.lock) {
         state.ship.velocity.x -= sinf(radians) * (float)THRUST;
         state.ship.velocity.y += cosf(radians) * (float)THRUST;
         render_booster();
     }
-    if (state.a) {
+    if (state.a && !state.lock) {
         state.ship.angle -= 5;
     }
-    if (state.d) {
+    if (state.d && !state.lock) {
         state.ship.angle += 5;
     }
 
@@ -323,7 +352,7 @@ void render_asteroid_explosion_particles() {
 }
 
 void render_ship() {
-    v2* new_points = render_angle_helper(ship_points, 6);
+    v2* new_points = render_angle_helper(ship_points, 6, state.ship.angle);
 
     const v2 pos = state.ship.position;
     for (int i = 0; i < 5; i++) {
@@ -331,6 +360,18 @@ void render_ship() {
             pos.x + new_points[i + 1].x, pos.y + new_points[i + 1].y);
     }
 
+    free(new_points);
+}
+
+void render_lives() {
+    v2 offset = (v2) {20.0f, 50.0f};
+    v2 *new_points = render_angle_helper(ship_points, 6, 180.0f);
+    for (int j = 0; j < state.lives; j++) {
+        for (int i = 0; i <  5; i++) {
+            SDL_RenderLine(state.renderer, offset.x + new_points[i].x, offset.y + new_points[i].y, offset.x + new_points[i + 1].x, offset.y + new_points[i + 1].y);
+        }
+        offset.x += 12.0f;
+    }
     free(new_points);
 }
 
@@ -355,7 +396,7 @@ void render_booster() {
         {2, -7},
     };
 
-    v2* new_points = render_angle_helper(booster_points, 3);
+    v2* new_points = render_angle_helper(booster_points, 3, state.ship.angle);
 
     const v2 pos = state.ship.position;
 
@@ -383,16 +424,16 @@ void render_projectiles() {
     }
 }
 
-v2* render_angle_helper(const v2 *points, const int n) {
+v2* render_angle_helper(const v2 *points, const int n, const float angle) {
     v2* new_points = malloc(n * sizeof(v2));
     for (int i = 0; i < n; i++) {
         new_points[i] = points[i];
 
-        new_points[i].x = points[i].x * cosf(state.ship.angle *
-            ((float)M_PI / 180.f)) - points[i].y * sinf(state.ship.angle * ((float)M_PI / 180.f));
+        new_points[i].x = points[i].x * cosf(angle *
+            ((float)M_PI / 180.f)) - points[i].y * sinf(angle * ((float)M_PI / 180.f));
 
-        new_points[i].y = points[i].x * sinf(state.ship.angle *
-            ((float)M_PI / 180.f)) + points[i].y * cosf(state.ship.angle * ((float)M_PI / 180.0f));
+        new_points[i].y = points[i].x * sinf(angle *
+            ((float)M_PI / 180.f)) + points[i].y * cosf(angle * ((float)M_PI / 180.0f));
     }
     return new_points;
 }
@@ -418,7 +459,7 @@ int ship_collision_check() {
 
     if (state.dead) return 0;
 
-    v2 *points = render_angle_helper(ship_points, 6);
+    v2 *points = render_angle_helper(ship_points, 6, state.ship.angle);
 
     for (int i = 0; i < 6; i++) {
         const int next_ship = (i + 1) % 6;
@@ -540,6 +581,7 @@ void add_particles(const v2 pos, const int n) {
 }
 
 void add_projectile() {
+    if (state.lock) return;
     array_list_add(state.projectiles, &(projectile) {
     .pos = state.ship.position,
     .vel = v2_scale((v2) {-sinf((state.ship.angle * (float)M_PI) / 180.0f), cosf((state.ship.angle * (float)M_PI) / 180.0f)}, 4.0f)});
