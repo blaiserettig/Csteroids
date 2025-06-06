@@ -16,6 +16,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "text.h"
+
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
@@ -124,7 +126,7 @@ int main(int argc, char* argv[]) {
     global_time.dt = 0.0f;
     SDL_GetCurrentTime(&global_time.now);
     SDL_GetCurrentTime(&global_time.last);
-    state.prev_ast = 2;
+    state.prev_ast = randi(10, 20);
     for (int i = 0; i < state.prev_ast; i++) {
         add_new_asteroid(LARGE, (v2) {NAN, NAN});
     }
@@ -168,6 +170,7 @@ void update() {
     render_projectiles();
     render_asteroid_explosion_particles();
     render_lives();
+    render_score();
 
     if (state.dead) draw_ship_explosion();
 }
@@ -373,6 +376,13 @@ void render_lives() {
         offset.x += 12.0f;
     }
     free(new_points);
+}
+
+void render_score() {
+    v2 offset = (v2) {20.0f, 20.0f};
+    for (int i = 0; i < NUMBERS[9].count - 1; i++) {
+        SDL_RenderLine(state.renderer, offset.x + NUMBERS[9].points[i].x * 25.0f, offset.y + NUMBERS[9].points[i].y * 25.0f, offset.x + NUMBERS[9].points[i + 1].x * 25.0f,  offset.y + NUMBERS[9].points[i + 1].y * 25.0f);
+    }
 }
 
 void render_asteroids() {

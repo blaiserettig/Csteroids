@@ -25,6 +25,7 @@ void render_asteroids_helper(v2 pos, const v2* points, int p_count);
 void render_booster();
 void render_projectiles();
 void render_lives();
+void render_score();
 void render_asteroid_explosion_particles();
 void draw_ship_explosion();
 v2* render_angle_helper(const v2 *points, int n, float angle);
