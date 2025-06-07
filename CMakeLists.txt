@@ -14,6 +14,8 @@ add_executable(main src/main.c
         src/asteroid.c
         src/text.c
         src/text.h
+        src/button.c
+        src/button.h
 )
 
 # Include the SDL3 header directory

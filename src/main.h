@@ -9,7 +9,7 @@ void handle_input();
 void update();
 void update_time();
 void on_level_complete();
-void reset_level();
+Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval);
 void start_game_over();
 void start_timer(float seconds);
 void update_ship();
@@ -38,6 +38,7 @@ void add_death_lines(float scale);
 void add_particles(v2 pos, int n);
 void add_projectile();
 void destroy_all_asteroids();
+void destroy_all_timers();
 void cleanup();
 
 #endif

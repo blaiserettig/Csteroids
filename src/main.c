@@ -6,6 +6,7 @@
 #include "SDL3/SDL_render.h"
 #include "SDL3/SDL_scancode.h"
 #include "SDL3/SDL_video.h"
+#include "SDL3/SDL_timer.h"
 
 #include "main.h"
 #include "util/math_ext.h"
@@ -16,6 +17,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "button.h"
 #include "text.h"
 
 #define SCREEN_WIDTH 800
@@ -54,16 +56,19 @@ struct {
     ArrayList *asteroids;
     ArrayList *projectiles;
     ArrayList *asteroid_particles;
+    ArrayList *buttons;
     death_line death_lines[5];
-    bool timer_active;
-    bool lock;
-    SDL_Time timer_end_time;
     int lives;
     int score;
     int prev_ast;
     int w;
     int a;
     int d;
+    enum {
+        START_MENU,
+        GAME_VIEW,
+        OVER_MENU,
+    } state;
 } state;
 
 struct {
@@ -91,16 +96,26 @@ int main(int argc, char* argv[]) {
     state.ship.velocity.y = 0;
     state.ship.angle = 0;
     state.dead = false;
-    state.lock = false;
     state.w = 0;
     state.a = 0;
     state.d = 0;
     state.lives = 3;
     state.score = 0;
+    state.state = START_MENU;
 
     state.asteroids = array_list_create(sizeof(asteroid));
     state.projectiles = array_list_create(sizeof(projectile));
     state.asteroid_particles = array_list_create(sizeof(death_line));
+    state.buttons = array_list_create(sizeof(button));
+
+    array_list_add(state.buttons, &(button){
+                       .draw_rect = {.x = SCREEN_WIDTH / 2.0f - 64, .y = SCREEN_HEIGHT / 2.0f - 32, .w = 128, .h = 64},
+                       .btn_color = {.r = 255, .g = 255, .b = 255, .a = 255},
+                       .pressed = false,
+                       .tag = 0,
+                       .label = "START",
+                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255}
+                   });
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
@@ -126,7 +141,7 @@ int main(int argc, char* argv[]) {
     global_time.dt = 0.0f;
     SDL_GetCurrentTime(&global_time.now);
     SDL_GetCurrentTime(&global_time.last);
-    state.prev_ast = randi(10, 14);
+    state.prev_ast = randi(6, 9);
     for (int i = 0; i < state.prev_ast; i++) {
         add_new_asteroid(LARGE, (v2) {NAN, NAN});
     }
@@ -149,6 +164,24 @@ void update() {
 
     handle_input();
 
+    for (int i  = 0; i < array_list_size(state.buttons); i++) {
+        button* b = array_list_get(state.buttons, i);
+        if (state.state == START_MENU) {
+            if (b->tag == 0 && button_press(state.renderer, b)) {
+                printf("CALLED!\n");
+                state.state = GAME_VIEW;
+            }
+        }
+    }
+
+    if (state.state == START_MENU) {
+        return;
+    }
+
+    if (state.state == OVER_MENU) {
+        render_text(state.renderer, "GAME OVER", (v2) {(float)SCREEN_WIDTH / 2, (float)SCREEN_HEIGHT / 2}, 25.0f);
+    }
+
     if (!state.dead) update_ship();
     update_asteroids();
     update_projectiles();
@@ -158,12 +191,13 @@ void update() {
         state.dead = true;
         add_death_lines(25.0f);
         add_particles(state.ship.position, randi(30, 40));
-        start_timer(3.0f);
+        const SDL_TimerID id = SDL_AddTimer(3000, reset_level, NULL);
+        if (id == 0) {
+            SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+        }
     }
 
     projectile_collision_check();
-
-    render_text(state.renderer, "over the lazy dog", (v2) {100.0f, 100.0f}, 25.0f);
 
     if (array_list_size(state.asteroids) < 1) on_level_complete();
 
@@ -181,19 +215,6 @@ void update_time() {
     SDL_GetCurrentTime(&global_time.now);
     global_time.dt = ((double)global_time.now - (double)global_time.last) / 1e9;
     global_time.last = global_time.now;
-
-    if (state.timer_active) {
-        SDL_Time current_time;
-        SDL_GetCurrentTime(&current_time);
-
-        if (current_time >= state.timer_end_time) {
-            state.timer_active = false;
-            reset_level();
-        } else {
-            const float remaining = (float)(state.timer_end_time - current_time) / 1e9f;
-            printf("TIMER: %f\n", remaining);
-        }
-    }
 }
 
 void on_level_complete() {
@@ -203,7 +224,7 @@ void on_level_complete() {
     }
 }
 
-void reset_level() {
+Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     if (--state.lives < 1) {
         start_game_over();
     } else {
@@ -212,16 +233,11 @@ void reset_level() {
         state.ship.angle = 0;
         state.dead = false;
     }
+    return 0;
 }
 
 void start_game_over() {
-    state.lock = true;
-}
-
-void start_timer(const float seconds) {
-    SDL_GetCurrentTime(&state.timer_end_time);
-    state.timer_end_time += (SDL_Time)(seconds * 1e9); // Convert seconds to nanoseconds
-    state.timer_active = true;
+    state.state = OVER_MENU;
 }
 
 void update_ship() {
@@ -229,15 +245,15 @@ void update_ship() {
     state.ship.position.y = wrap0f(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
 
     const float radians = state.ship.angle * ((float)M_PI / 180.0f);
-    if (state.w && !state.lock) {
+    if (state.w) {
         state.ship.velocity.x -= sinf(radians) * (float)THRUST;
         state.ship.velocity.y += cosf(radians) * (float)THRUST;
         render_booster();
     }
-    if (state.a && !state.lock) {
+    if (state.a) {
         state.ship.angle -= 5;
     }
-    if (state.d && !state.lock) {
+    if (state.d) {
         state.ship.angle += 5;
     }
 
@@ -278,11 +294,16 @@ void update_asteroid_explosion_particles() {
 void handle_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        for (size_t i = 0; i < array_list_size(state.buttons); i++ ) {
+            button *b = array_list_get(state.buttons, i);
+            button_process_event(b,  &event);
+        }
         switch (event.type) {
             case SDL_EVENT_QUIT:
                 state.quit = true;
                 break;
             case SDL_EVENT_KEY_DOWN:
+                if (state.state == START_MENU) return;
                 switch (event.key.scancode) {
                     case SDL_SCANCODE_W:
                         state.w = 1;
@@ -307,6 +328,7 @@ void handle_input() {
                 }
                 break;
             case SDL_EVENT_KEY_UP:
+                if (state.state == START_MENU) return;
                 switch (event.key.scancode) {
                     case SDL_SCANCODE_W:
                         state.w = 0;
@@ -321,14 +343,6 @@ void handle_input() {
                         break;
                 }
                 break;
-            case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                switch (event.button.button) {
-                    case SDL_BUTTON_LEFT:
-                        // do nothing (for now)
-                        break;
-                    default:
-                        break;
-                }
             default:
                 break;
         }
@@ -369,7 +383,7 @@ void render_ship() {
 }
 
 void render_lives() {
-    v2 offset = (v2) {20.0f, 50.0f};
+    v2 offset = (v2) {30.0f, 50.0f};
     v2 *new_points = render_angle_helper(ship_points, 6, 180.0f);
     for (int j = 0; j < state.lives; j++) {
         for (int i = 0; i <  5; i++) {
@@ -384,7 +398,7 @@ void render_score() {
     const int length = snprintf( NULL, 0, "%d", state.score);
     char buffer[length + 1];
     snprintf(buffer, length + 1, "%d", state.score);
-    render_text(state.renderer, buffer, (v2) {10.0f, 10.0f}, 20.0f);
+    render_text(state.renderer, buffer, (v2) {45.0f, 20.0f}, 20.0f);
 }
 
 void render_asteroids() {
@@ -596,7 +610,7 @@ void add_particles(const v2 pos, const int n) {
 }
 
 void add_projectile() {
-    if (state.lock) return;
+    if (state.state == OVER_MENU) return;
     array_list_add(state.projectiles, &(projectile) {
     .pos = state.ship.position,
     .vel = v2_scale((v2) {-sinf((state.ship.angle * (float)M_PI) / 180.0f), cosf((state.ship.angle * (float)M_PI) / 180.0f)}, 4.0f)});
@@ -621,6 +635,7 @@ void cleanup() {
     array_list_free(state.asteroids);
     array_list_free(state.projectiles);
     array_list_free(state.asteroid_particles);
+    array_list_free(state.buttons);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
 }
