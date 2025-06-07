@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
     global_time.dt = 0.0f;
     SDL_GetCurrentTime(&global_time.now);
     SDL_GetCurrentTime(&global_time.last);
-    state.prev_ast = randi(10, 20);
+    state.prev_ast = randi(10, 14);
     for (int i = 0; i < state.prev_ast; i++) {
         add_new_asteroid(LARGE, (v2) {NAN, NAN});
     }
@@ -162,6 +162,8 @@ void update() {
     }
 
     projectile_collision_check();
+
+    render_text(state.renderer, "over the lazy dog", (v2) {100.0f, 100.0f}, 25.0f);
 
     if (array_list_size(state.asteroids) < 1) on_level_complete();
 
@@ -379,10 +381,10 @@ void render_lives() {
 }
 
 void render_score() {
-    v2 offset = (v2) {20.0f, 20.0f};
-    for (int i = 0; i < NUMBERS[9].count - 1; i++) {
-        SDL_RenderLine(state.renderer, offset.x + NUMBERS[9].points[i].x * 25.0f, offset.y + NUMBERS[9].points[i].y * 25.0f, offset.x + NUMBERS[9].points[i + 1].x * 25.0f,  offset.y + NUMBERS[9].points[i + 1].y * 25.0f);
-    }
+    const int length = snprintf( NULL, 0, "%d", state.score);
+    char buffer[length + 1];
+    snprintf(buffer, length + 1, "%d", state.score);
+    render_text(state.renderer, buffer, (v2) {10.0f, 10.0f}, 20.0f);
 }
 
 void render_asteroids() {
@@ -521,14 +523,17 @@ void on_asteroid_hit(const asteroid *a, const int i) {
     add_particles(a->position, randi(15, 20));
     switch (a->size) {
         case SMALL:
+            state.score += 100;
             array_list_remove(state.asteroids, i);
             break;
         case MEDIUM:
+            state.score += 50;
             add_new_asteroid(SMALL,  a->position);
             add_new_asteroid(SMALL,  a->position);
             array_list_remove(state.asteroids, i);
             break;
         case LARGE:
+            state.score += 20;
             add_new_asteroid(MEDIUM,  a->position);
             add_new_asteroid(MEDIUM,  a->position);
             array_list_remove(state.asteroids, i);
