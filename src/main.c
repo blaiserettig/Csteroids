@@ -46,18 +46,25 @@ typedef struct {
     v2 vel;
 } projectile;
 
+typedef struct {
+    float x, y, z;
+    float target_x, target_y;
+} hyperspace_line;
+
 struct {
     SDL_Window *window;
     SDL_Texture *texture;
     SDL_Renderer *renderer;
     bool quit;
     bool dead;
+    bool spawn;
     ship ship;
     ArrayList *asteroids;
     ArrayList *projectiles;
     ArrayList *asteroid_particles;
     ArrayList *buttons;
     death_line death_lines[5];
+    hyperspace_line hyperspace_lines[100];
     int lives;
     int score;
     int prev_ast;
@@ -96,6 +103,7 @@ int main(int argc, char* argv[]) {
     state.ship.velocity.y = 0;
     state.ship.angle = 0;
     state.dead = false;
+    state.spawn = false;
     state.w = 0;
     state.a = 0;
     state.d = 0;
@@ -108,14 +116,34 @@ int main(int argc, char* argv[]) {
     state.asteroid_particles = array_list_create(sizeof(death_line));
     state.buttons = array_list_create(sizeof(button));
 
+    init_hyperspace();
+
     array_list_add(state.buttons, &(button){
                        .draw_rect = {.x = SCREEN_WIDTH / 2.0f - 64, .y = SCREEN_HEIGHT / 2.0f - 32, .w = 128, .h = 64},
-                       .btn_color = {.r = 255, .g = 255, .b = 255, .a = 255},
+                       .btn_color = {.r = 200, .g = 200, .b = 200, .a = 255},
                        .pressed = false,
                        .tag = 0,
                        .label = "START",
                        .label_color = {.r = 0, .g = 0, .b = 0, .a = 255}
                    });
+
+    array_list_add(state.buttons, &(button){
+                   .draw_rect = {.x = SCREEN_WIDTH / 2.0f - 64, .y = SCREEN_HEIGHT / 2.0f - 32, .w = 128, .h = 64},
+                   .btn_color = {.r = 200, .g = 200, .b = 200, .a = 255},
+                   .pressed = false,
+                   .tag = 10,
+                   .label = "RESTART",
+                   .label_color = {.r = 0, .g = 0, .b = 0, .a = 255}
+               });
+
+    array_list_add(state.buttons, &(button){
+               .draw_rect = {.x = SCREEN_WIDTH / 2.0f - 64, .y = SCREEN_HEIGHT / 2.0f + 48.0f, .w = 128, .h = 64},
+               .btn_color = {.r = 200, .g = 200, .b = 200, .a = 255},
+               .pressed = false,
+               .tag = -1,
+               .label = "QUIT",
+               .label_color = {.r = 0, .g = 0, .b = 0, .a = 255}
+           });
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
@@ -164,23 +192,39 @@ void update() {
 
     handle_input();
 
+    if (state.state == START_MENU) {
+        update_hyperspace();
+        render_hyperspace();
+        render_text(state.renderer, "CSTEROIDS", (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
+    }
+
+    if (state.state == OVER_MENU) {
+        render_text(state.renderer, "GAME OVER", (v2) {(float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
+    }
+
     for (int i  = 0; i < array_list_size(state.buttons); i++) {
         button* b = array_list_get(state.buttons, i);
         if (state.state == START_MENU) {
-            if (b->tag == 0 && button_press(state.renderer, b)) {
-                printf("CALLED!\n");
+            if (b->tag == 0 && button_press(state.renderer, b)) { // start game button
                 state.state = GAME_VIEW;
+            }
+            if (b->tag == -1 && button_press(state.renderer, b)) {
+                state.quit = true;
+            }
+        }
+        if (state.state == OVER_MENU) {
+            if (b->tag == 10 && button_press(state.renderer, b)) { // restart button
+                reset_game();
+                state.state = GAME_VIEW;
+                return;
+            }
+            if (b->tag == -1 &&  button_press(state.renderer, b)) {
+                state.quit = true;
             }
         }
     }
 
-    if (state.state == START_MENU) {
-        return;
-    }
-
-    if (state.state == OVER_MENU) {
-        render_text(state.renderer, "GAME OVER", (v2) {(float)SCREEN_WIDTH / 2, (float)SCREEN_HEIGHT / 2}, 25.0f);
-    }
+    if (state.state == START_MENU) return;
 
     if (!state.dead) update_ship();
     update_asteroids();
@@ -199,7 +243,13 @@ void update() {
 
     projectile_collision_check();
 
-    if (array_list_size(state.asteroids) < 1) on_level_complete();
+    if (array_list_size(state.asteroids) < 1 && !state.spawn) {
+        state.spawn = true;
+        const SDL_TimerID id = SDL_AddTimer(1500, on_level_complete, NULL);
+        if (id == 0) {
+            SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+        }
+    }
 
     if (!state.dead) render_ship();
     render_asteroids();
@@ -217,11 +267,13 @@ void update_time() {
     global_time.last = global_time.now;
 }
 
-void on_level_complete() {
+Uint32 on_level_complete(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     const int n = state.score < randi(40000, 60000) ? ++state.prev_ast : state.prev_ast;
     for (int i = 0; i < n; i++) {
         add_new_asteroid(LARGE, (v2) {NAN, NAN});
     }
+    state.spawn = false;
+    return 0;
 }
 
 Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
@@ -234,6 +286,31 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
         state.dead = false;
     }
     return 0;
+}
+
+void reset_game() {
+    destroy_all_asteroids();
+    array_list_free(state.asteroids);
+    state.asteroids = array_list_create(sizeof(asteroid));
+    global_time.dt = 0.0f;
+    SDL_GetCurrentTime(&global_time.now);
+    SDL_GetCurrentTime(&global_time.last);
+    state.prev_ast = randi(6, 9);
+    for (int i = 0; i < state.prev_ast; i++) {
+        add_new_asteroid(LARGE, (v2) {NAN, NAN});
+    }
+    state.ship.position.x = SCREEN_WIDTH / 2.0;
+    state.ship.position.y = SCREEN_HEIGHT / 2.0;
+    state.ship.velocity.x = 0;
+    state.ship.velocity.y = 0;
+    state.ship.angle = 0;
+    state.dead = false;
+    state.spawn = false;
+    state.w = 0;
+    state.a = 0;
+    state.d = 0;
+    state.lives = 3;
+    state.score = 0;
 }
 
 void start_game_over() {
@@ -296,7 +373,8 @@ void handle_input() {
     while (SDL_PollEvent(&event)) {
         for (size_t i = 0; i < array_list_size(state.buttons); i++ ) {
             button *b = array_list_get(state.buttons, i);
-            button_process_event(b,  &event);
+            if (state.state == OVER_MENU && b->tag < 20 || state.state == START_MENU && b->tag < 10)
+                button_process_event(b,  &event);
         }
         switch (event.type) {
             case SDL_EVENT_QUIT:
@@ -317,11 +395,6 @@ void handle_input() {
                     case SDL_SCANCODE_SPACE:
                         const SDL_KeyboardEvent e = event.key;
                         if (!e.repeat) add_projectile();
-                        break;
-                    case SDL_SCANCODE_F:
-                        add_new_asteroid(LARGE, (v2) {NAN, NAN});
-                        add_new_asteroid(MEDIUM, (v2) {NAN, NAN});
-                        add_new_asteroid(SMALL, (v2) {NAN, NAN});
                         break;
                     default:
                         break;
@@ -462,6 +535,41 @@ v2* render_angle_helper(const v2 *points, const int n, const float angle) {
             ((float)M_PI / 180.f)) + points[i].y * cosf(angle * ((float)M_PI / 180.0f));
     }
     return new_points;
+}
+
+void update_hyperspace() {
+    for (int i = 0; i < 100; i++) {
+        state.hyperspace_lines[i].z -= 1.0f;
+
+        const float scale = 50.0f / state.hyperspace_lines[i].z;
+        state.hyperspace_lines[i].x = (SCREEN_WIDTH / 2.0f) + (state.hyperspace_lines[i].target_x * scale);
+        state.hyperspace_lines[i].y = (SCREEN_HEIGHT / 2.0f) + (state.hyperspace_lines[i].target_y * scale);
+
+        if (state.hyperspace_lines[i].z < 5.0f) {
+            state.hyperspace_lines[i].z = randf(50.0f, 100.0f);
+            state.hyperspace_lines[i].target_x = randf(-200.0f, 200.0f);
+            state.hyperspace_lines[i].target_y = randf(-200.0f, 200.0f);
+        }
+    }
+}
+
+void render_hyperspace() {
+    SDL_SetRenderDrawColor(state.renderer, 64, 64, 64, 255);
+    for (int i = 0; i < 100; i++) {
+        SDL_RenderLine(state.renderer,
+                      SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f,
+                      state.hyperspace_lines[i].x, state.hyperspace_lines[i].y);
+    }
+    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+}
+
+void init_hyperspace() {
+    for (int i = 0; i < 100; i++) {
+        state.hyperspace_lines[i] = (hyperspace_line) {
+            .x = SCREEN_WIDTH / 2.0f, .y = SCREEN_HEIGHT / 2.0f, .z = randf(50.0f, 100.0f),
+            .target_x = randf(-200.0f, 200.0f), .target_y = randf(-200.0f, 200.0f)
+        };
+    }
 }
 
 void projectile_collision_check() {

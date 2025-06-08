@@ -1,6 +1,14 @@
 #include "button.h"
 
+#include <stdio.h>
+
 #include "text.h"
+
+bool is_mouse_over(const float x, const float y, const button *btn) {
+    return (float) x >= btn->draw_rect.x && (float) x <= btn->draw_rect.x + btn->draw_rect.w &&
+           (float) y >= btn->draw_rect.y && (float) y <= btn->draw_rect.y + btn->draw_rect.h;
+
+}
 
 void button_process_event(button *btn, const SDL_Event *ev) {
     if (ev->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
@@ -10,6 +18,19 @@ void button_process_event(button *btn, const SDL_Event *ev) {
             ev->button.y >= btn->draw_rect.y &&
             ev->button.y <= btn->draw_rect.y + btn->draw_rect.h) {
             btn->pressed = true;
+        }
+    }
+    if (ev->type == SDL_EVENT_MOUSE_MOTION) {
+        const float mx = ev->motion.x;
+        const float my = ev->motion.y;
+        if (is_mouse_over(mx, my, btn)) {
+            btn->btn_color.r = 255;
+            btn->btn_color.g = 255;
+            btn->btn_color.b = 255;
+        } else {
+            btn->btn_color.r = 200;
+            btn->btn_color.g = 200;
+            btn->btn_color.b = 200;
         }
     }
 }

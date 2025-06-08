@@ -449,7 +449,6 @@ void render_text(SDL_Renderer *renderer, char c[], v2 pos, const float scale) {
                 SDL_RenderLine(renderer, pos.x + LETTERS[k].points[j].x * scale, pos.y + LETTERS[k].points[j].y * scale,
                                pos.x + LETTERS[k].points[j + 1].x * scale, pos.y + LETTERS[k].points[j + 1].y * scale);
             }
-            pos.x += scale;
         } else if (isdigit(c[i]) != 0) {
             for (int j = 0; j < NUMBERS[c[i] - '0'].count - 1; j++) {
                 SDL_RenderLine(renderer, pos.x + NUMBERS[c[i] - '0'].points[j].x * scale,
@@ -457,9 +456,8 @@ void render_text(SDL_Renderer *renderer, char c[], v2 pos, const float scale) {
                                pos.x + NUMBERS[c[i] - '0'].points[j + 1].x * scale,
                                pos.y + NUMBERS[c[i] - '0'].points[j + 1].y * scale);
             }
-            pos.x += scale;
         } else if (isspace(c[i]) != 0) {
-            pos.x += scale;
         }
+        pos.x += scale;
     }
 }
