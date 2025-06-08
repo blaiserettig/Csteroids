@@ -15,4 +15,8 @@ extern letter LETTERS[26];
 
 void render_text(SDL_Renderer *renderer, char c[], v2 pos, float scale);
 
+void render_text_3d(SDL_Renderer *renderer, char c[], v2 pos, float scale);
+
+void render_text_3d_extruded(SDL_Renderer *renderer, char c[], v2 pos, float scale);
+
 #endif //TEXT_H

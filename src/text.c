@@ -461,3 +461,60 @@ void render_text(SDL_Renderer *renderer, char c[], v2 pos, const float scale) {
         pos.x += scale;
     }
 }
+
+void render_text_3d(SDL_Renderer *renderer, char c[], const v2 pos, const float scale) {
+    const float depth_offset_x = scale * 0.1f;
+    const float depth_offset_y = scale * 0.1f;
+
+    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+    v2 shadow_pos = {pos.x + depth_offset_x, pos.y + depth_offset_y};
+    render_text(renderer, c, shadow_pos, scale);
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    render_text(renderer, c, pos, scale);
+}
+
+void render_text_3d_extruded(SDL_Renderer *renderer, char c[], v2 pos, const float scale) {
+    const float depth_x = scale * 0.15f;
+    const float depth_y = scale * 0.1f;
+
+    const float x_offset = ((float)strlen(c) * scale) / 2.0f;
+    const float y_offset = scale / 2.0f;
+    pos.x -= x_offset;
+    pos.y -= y_offset;
+
+    for (int i = 0; i < strlen(c); i++) {
+        if (isalpha(c[i]) != 0) {
+            const char upper = (char) toupper(c[i]);
+            const int k = upper - 'A';
+
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            for (int j = 0; j < LETTERS[k].count - 1; j++) {
+                SDL_RenderLine(renderer,
+                    pos.x + LETTERS[k].points[j].x * scale,
+                    pos.y + LETTERS[k].points[j].y * scale,
+                    pos.x + LETTERS[k].points[j + 1].x * scale,
+                    pos.y + LETTERS[k].points[j + 1].y * scale);
+            }
+
+            SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
+            for (int j = 0; j < LETTERS[k].count - 1; j++) {
+                SDL_RenderLine(renderer,
+                    pos.x + LETTERS[k].points[j].x * scale + depth_x,
+                    pos.y + LETTERS[k].points[j].y * scale + depth_y,
+                    pos.x + LETTERS[k].points[j + 1].x * scale + depth_x,
+                    pos.y + LETTERS[k].points[j + 1].y * scale + depth_y);
+            }
+
+            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+            for (int j = 0; j < LETTERS[k].count; j++) {
+                SDL_RenderLine(renderer,
+                    pos.x + LETTERS[k].points[j].x * scale,
+                    pos.y + LETTERS[k].points[j].y * scale,
+                    pos.x + LETTERS[k].points[j].x * scale + depth_x,
+                    pos.y + LETTERS[k].points[j].y * scale + depth_y);
+            }
+        }
+        pos.x += scale;
+    }
+}

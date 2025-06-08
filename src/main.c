@@ -195,11 +195,15 @@ void update() {
     if (state.state == START_MENU) {
         update_hyperspace();
         render_hyperspace();
-        render_text(state.renderer, "CSTEROIDS", (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
+        render_text_3d_extruded(state.renderer, "CSTEROIDS", (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
+    }
+
+    if (state.state == GAME_VIEW) {
+
     }
 
     if (state.state == OVER_MENU) {
-        render_text(state.renderer, "GAME OVER", (v2) {(float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
+        render_text_3d_extruded(state.renderer, "GAME OVER", (v2) {(float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
     }
 
     for (int i  = 0; i < array_list_size(state.buttons); i++) {
