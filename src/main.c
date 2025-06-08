@@ -51,6 +51,11 @@ typedef struct {
     float target_x, target_y;
 } hyperspace_line;
 
+typedef struct {
+    v2 pos;
+    v2 vel;
+} big_saucer, small_saucer;
+
 struct {
     SDL_Window *window;
     SDL_Texture *texture;
@@ -58,6 +63,8 @@ struct {
     bool quit;
     bool dead;
     bool spawn;
+    bool s_saucer;
+    bool b_saucer;
     ship ship;
     ArrayList *asteroids;
     ArrayList *projectiles;
@@ -65,6 +72,8 @@ struct {
     ArrayList *buttons;
     death_line death_lines[5];
     hyperspace_line hyperspace_lines[100];
+    big_saucer big_saucer;
+    small_saucer small_saucer;
     int lives;
     int score;
     int prev_ast;
@@ -94,6 +103,21 @@ v2 ship_points[] = {
     {-5, -10}
 };
 
+v2 saucer_points[] = {
+    {-12, 0},
+    {-8, 3},
+    {8, 3},
+    {12, 0},
+    {8, -3},
+    {-8, -3},
+    {-12, 0},
+    {12, 0},
+    {6, -3},
+    {4, -6},
+    {-4, -6},
+    {-6, -3}
+};
+
 int main(int argc, char* argv[]) {
     srand((unsigned int)time(NULL));
 
@@ -104,6 +128,8 @@ int main(int argc, char* argv[]) {
     state.ship.angle = 0;
     state.dead = false;
     state.spawn = false;
+    state.s_saucer = false;
+    state.b_saucer = false;
     state.w = 0;
     state.a = 0;
     state.d = 0;
@@ -173,6 +199,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < state.prev_ast; i++) {
         add_new_asteroid(LARGE, (v2) {NAN, NAN});
     }
+    init_saucer();
 
     while (!state.quit) {
         SDL_SetRenderDrawColor(state.renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -199,7 +226,8 @@ void update() {
     }
 
     if (state.state == GAME_VIEW) {
-
+        update_hyperspace();
+        render_hyperspace();
     }
 
     if (state.state == OVER_MENU) {
@@ -234,6 +262,7 @@ void update() {
     update_asteroids();
     update_projectiles();
     update_asteroid_explosion_particles();
+    if (state.s_saucer || state.b_saucer) update_saucer();
 
     if (ship_collision_check() > 0) {
         state.dead = true;
@@ -261,6 +290,8 @@ void update() {
     render_asteroid_explosion_particles();
     render_lives();
     render_score();
+    if (state.s_saucer) render_saucer(state.small_saucer.pos, 1.0f);
+    if (state.b_saucer) render_saucer(state.big_saucer.pos, 2.0f);
 
     if (state.dead) draw_ship_explosion();
 }
@@ -319,6 +350,14 @@ void reset_game() {
 
 void start_game_over() {
     state.state = OVER_MENU;
+}
+
+void update_saucer() {
+    state.small_saucer.pos.x = wrap0f(state.small_saucer.pos.x + state.small_saucer.vel.x, SCREEN_WIDTH);
+    state.small_saucer.pos.y = wrap0f(state.small_saucer.pos.y + state.small_saucer.vel.y, SCREEN_HEIGHT);
+
+    state.big_saucer.pos.x = wrap0f(state.big_saucer.pos.x + state.big_saucer.vel.x, SCREEN_WIDTH);
+    state.big_saucer.pos.y = wrap0f(state.big_saucer.pos.y + state.big_saucer.vel.y, SCREEN_HEIGHT);
 }
 
 void update_ship() {
@@ -396,6 +435,9 @@ void handle_input() {
                     case SDL_SCANCODE_A:
                         state.a = 1;
                         break;
+                    case SDL_SCANCODE_F:
+                        state.b_saucer = true;
+                        break;
                     case SDL_SCANCODE_SPACE:
                         const SDL_KeyboardEvent e = event.key;
                         if (!e.repeat) add_projectile();
@@ -415,6 +457,9 @@ void handle_input() {
                         break;
                     case SDL_SCANCODE_A:
                         state.a = 0;
+                        break;
+                    case SDL_SCANCODE_F:
+                        state.b_saucer = false;
                         break;
                     default:
                         break;
@@ -541,9 +586,31 @@ v2* render_angle_helper(const v2 *points, const int n, const float angle) {
     return new_points;
 }
 
+void render_saucer(const v2 pos, const float scale) {
+    for (int i = 0; i < 12; i++) {
+        const int next = (i + 1) % 12;
+        SDL_RenderLine(state.renderer, pos.x + saucer_points[i].x * scale, pos.y + saucer_points[i].y * scale,
+                       pos.x + saucer_points[next].x * scale, pos.y + saucer_points[next].y * scale);
+    }
+}
+
+void init_saucer() {
+    const float s_angle = randf(0.0f, 1.0f) * (float)M_TAU;
+    state.small_saucer.pos = (v2) {randf(0, SCREEN_WIDTH), randf(0, SCREEN_HEIGHT)};
+    state.small_saucer.vel = (v2) {-sinf(s_angle), cosf(s_angle)};
+
+    const float b_angle = randf(0.0f, 1.0f) * (float)M_TAU;
+    state.big_saucer.pos = (v2) {randf(0, SCREEN_WIDTH), randf(0, SCREEN_HEIGHT)};
+    state.big_saucer.vel = (v2) {-sinf(b_angle), cosf(b_angle)};
+}
+
 void update_hyperspace() {
     for (int i = 0; i < 100; i++) {
-        state.hyperspace_lines[i].z -= 1.0f;
+        if (state.state == GAME_VIEW) {
+            state.hyperspace_lines[i].z -= 0.5f;
+        } else {
+            state.hyperspace_lines[i].z -= 1.0f;
+        }
 
         const float scale = 50.0f / state.hyperspace_lines[i].z;
         state.hyperspace_lines[i].x = (SCREEN_WIDTH / 2.0f) + (state.hyperspace_lines[i].target_x * scale);
@@ -558,7 +625,11 @@ void update_hyperspace() {
 }
 
 void render_hyperspace() {
-    SDL_SetRenderDrawColor(state.renderer, 64, 64, 64, 255);
+    if (state.state == GAME_VIEW) {
+        SDL_SetRenderDrawColor(state.renderer, 16, 16, 16, 255);
+    } else {
+        SDL_SetRenderDrawColor(state.renderer, 64, 64, 64, 255);
+    }
     for (int i = 0; i < 100; i++) {
         SDL_RenderLine(state.renderer,
                       SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f,
@@ -646,6 +717,7 @@ void highlight_collision(const v2 v) {
 }
 
 void on_asteroid_hit(const asteroid *a, const int i) {
+    int last_div = state.score / 10000;
     add_particles(a->position, randi(15, 20));
     switch (a->size) {
         case SMALL:
@@ -664,6 +736,10 @@ void on_asteroid_hit(const asteroid *a, const int i) {
             add_new_asteroid(MEDIUM,  a->position);
             array_list_remove(state.asteroids, i);
             break;
+    }
+    if (state.score / 10000 != last_div) {
+        state.lives++;
+        last_div = state.score / 10000;
     }
 }
 
