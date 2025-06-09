@@ -1,7 +1,5 @@
 #include "button.h"
 
-#include <stdio.h>
-
 #include "text.h"
 
 bool is_mouse_over(const float x, const float y, const button *btn) {
