@@ -1,4 +1,3 @@
-
 #ifndef ARRAY_LIST_H
 #define ARRAY_LIST_H
 
@@ -17,7 +16,7 @@ int array_list_add(ArrayList *list, void *element);
 
 void array_list_free(ArrayList *list);
 
-void* array_list_get(ArrayList *list, size_t index);
+void *array_list_get(ArrayList *list, size_t index);
 
 size_t array_list_size(const ArrayList *list);
 

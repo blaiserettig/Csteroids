@@ -1,5 +1,4 @@
-﻿
-#ifndef MATH_EXT_H
+﻿#ifndef MATH_EXT_H
 #define MATH_EXT_H
 
 #include <math.h>
@@ -16,7 +15,7 @@ static float clampf(const float val, const float min, const float max) {
 }
 
 static float randf(const float min, const float max) {
-    const float scale = (float)rand() / (float) RAND_MAX;
+    const float scale = (float) rand() / (float) RAND_MAX;
     return min + scale * (max - min);
 }
 

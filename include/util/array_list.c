@@ -4,7 +4,7 @@
 ArrayList *array_list_create(const size_t element_size) {
     ArrayList *list = malloc(sizeof(ArrayList));
     if (!list) return NULL;
-    list->data =  malloc(sizeof(void*) * 2);
+    list->data = malloc(sizeof(void *) * 2);
     if (!list->data) {
         free(list);
         return NULL;
@@ -17,7 +17,7 @@ ArrayList *array_list_create(const size_t element_size) {
 
 static int array_list_resize(ArrayList *list) {
     const size_t new_capacity = list->capacity * 2;
-    void **new_data = realloc(list->data, sizeof(void*) * new_capacity);
+    void **new_data = realloc(list->data, sizeof(void *) * new_capacity);
     if (!new_data) return 0;
 
     list->data = new_data;
@@ -40,7 +40,7 @@ int array_list_add(ArrayList *list, void *element) {
     return 1;
 }
 
-void* array_list_get(ArrayList *list, const size_t index) {
+void *array_list_get(ArrayList *list, const size_t index) {
     if (!list || index >= list->size) return NULL;
     return list->data[index];
 }

@@ -5,7 +5,6 @@
 bool is_mouse_over(const float x, const float y, const button *btn) {
     return (float) x >= btn->draw_rect.x && (float) x <= btn->draw_rect.x + btn->draw_rect.w &&
            (float) y >= btn->draw_rect.y && (float) y <= btn->draw_rect.y + btn->draw_rect.h;
-
 }
 
 void button_process_event(button *btn, const SDL_Event *ev) {
