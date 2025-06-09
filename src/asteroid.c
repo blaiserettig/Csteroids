@@ -16,11 +16,11 @@ float get_asteroid_scale(const AsteroidSize size) {
 float get_asteroid_velocity_scale(const AsteroidSize size) {
     switch (size) {
         case SMALL:
-            return 1.6f;
+            return 2.0f;
         case MEDIUM:
-            return 1.0f;
+            return 1.1f;
         case LARGE:
-            return 0.6f;
+            return 0.7f;
         default:
             return 0.0f;
     }

@@ -44,6 +44,7 @@ typedef struct {
 typedef struct {
     v2 pos;
     v2 vel;
+    float ttl;
 } projectile;
 
 typedef struct {
@@ -214,7 +215,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void update() {
+void update(void) {
     update_time();
 
     handle_input();
@@ -265,13 +266,7 @@ void update() {
     if (state.s_saucer || state.b_saucer) update_saucer();
 
     if (ship_collision_check() > 0) {
-        state.dead = true;
-        add_death_lines(25.0f);
-        add_particles(state.ship.position, randi(30, 40));
-        const SDL_TimerID id = SDL_AddTimer(3000, reset_level, NULL);
-        if (id == 0) {
-            SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
-        }
+        on_ship_hit();
     }
 
     projectile_collision_check();
@@ -296,7 +291,7 @@ void update() {
     if (state.dead) draw_ship_explosion();
 }
 
-void update_time() {
+void update_time(void) {
     SDL_GetCurrentTime(&global_time.now);
     global_time.dt = ((double)global_time.now - (double)global_time.last) / 1e9;
     global_time.last = global_time.now;
@@ -323,7 +318,7 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     return 0;
 }
 
-void reset_game() {
+void reset_game(void) {
     destroy_all_asteroids();
     array_list_free(state.asteroids);
     state.asteroids = array_list_create(sizeof(asteroid));
@@ -348,11 +343,21 @@ void reset_game() {
     state.score = 0;
 }
 
-void start_game_over() {
+void start_game_over(void) {
     state.state = OVER_MENU;
 }
 
-void update_saucer() {
+void on_ship_hit(void) {
+    state.dead = true;
+    add_death_lines(25.0f);
+    add_particles(state.ship.position, randi(30, 40));
+    const SDL_TimerID id = SDL_AddTimer(3000, reset_level, NULL);
+    if (id == 0) {
+        SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+    }
+}
+
+void update_saucer(void) {
     state.small_saucer.pos.x = wrap0f(state.small_saucer.pos.x + state.small_saucer.vel.x, SCREEN_WIDTH);
     state.small_saucer.pos.y = wrap0f(state.small_saucer.pos.y + state.small_saucer.vel.y, SCREEN_HEIGHT);
 
@@ -360,7 +365,7 @@ void update_saucer() {
     state.big_saucer.pos.y = wrap0f(state.big_saucer.pos.y + state.big_saucer.vel.y, SCREEN_HEIGHT);
 }
 
-void update_ship() {
+void update_ship(void) {
     state.ship.position.x = wrap0f(state.ship.position.x + state.ship.velocity.x, SCREEN_WIDTH);
     state.ship.position.y = wrap0f(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
 
@@ -384,7 +389,7 @@ void update_ship() {
     state.ship.velocity.y = clampf(state.ship.velocity.y, -10, 10);
 }
 
-void update_asteroids() {
+void update_asteroids(void) {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++ ) {
         asteroid *a = array_list_get(state.asteroids, i);
         a->position.x = wrap0f(a->position.x += a->velocity.x, SCREEN_WIDTH);
@@ -392,16 +397,17 @@ void update_asteroids() {
     }
 }
 
-void update_projectiles() {
+void update_projectiles(void) {
     for (size_t i = 0; i < array_list_size(state.projectiles); i++ ) {
         projectile *p = array_list_get(state.projectiles, i);
-        p->pos.x += p->vel.x;
-        p->pos.y += p->vel.y;
-        if (p->pos.x < 0 || p->pos.x > SCREEN_WIDTH ||  p->pos.y < 0 || p->pos.y > SCREEN_HEIGHT) array_list_remove(state.projectiles, i);
+        p->pos.x = wrap0f(p->pos.x + p->vel.x, SCREEN_WIDTH);
+        p->pos.y = wrap0f(p->pos.y + p->vel.y, SCREEN_HEIGHT);
+        p->ttl -= (float)global_time.dt;
+        if (p->ttl < 0) array_list_remove(state.projectiles, i);
     }
 }
 
-void update_asteroid_explosion_particles() {
+void update_asteroid_explosion_particles(void) {
     for (size_t i = 0; i < array_list_size(state.asteroid_particles); i++ ) {
         death_line *d = array_list_get(state.asteroid_particles, i);
         d->p1 = v2_sum(d->p1, d->vel);
@@ -411,7 +417,7 @@ void update_asteroid_explosion_particles() {
     }
 }
 
-void handle_input() {
+void handle_input(void) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         for (size_t i = 0; i < array_list_size(state.buttons); i++ ) {
@@ -471,7 +477,7 @@ void handle_input() {
     }
 }
 
-void draw_ship_explosion() {
+void draw_ship_explosion(void) {
     const v2 pos = state.ship.position;
     for (int i = 0; i < 5; i++) {
         death_line d = state.death_lines[i];
@@ -483,7 +489,7 @@ void draw_ship_explosion() {
     }
 }
 
-void render_asteroid_explosion_particles() {
+void render_asteroid_explosion_particles(void) {
     SDL_SetRenderDrawColor(state.renderer, 128, 128, 128, 255);
     for (size_t i = 0; i < array_list_size(state.asteroid_particles); i++ ) {
         const death_line *d = array_list_get(state.asteroid_particles, i);
@@ -492,7 +498,7 @@ void render_asteroid_explosion_particles() {
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 }
 
-void render_ship() {
+void render_ship(void) {
     v2* new_points = render_angle_helper(ship_points, 6, state.ship.angle);
 
     const v2 pos = state.ship.position;
@@ -504,7 +510,7 @@ void render_ship() {
     free(new_points);
 }
 
-void render_lives() {
+void render_lives(void) {
     v2 offset = (v2) {30.0f, 50.0f};
     v2 *new_points = render_angle_helper(ship_points, 6, 180.0f);
     for (int j = 0; j < state.lives; j++) {
@@ -516,14 +522,14 @@ void render_lives() {
     free(new_points);
 }
 
-void render_score() {
+void render_score(void) {
     const int length = snprintf( NULL, 0, "%d", state.score);
     char buffer[length + 1];
     snprintf(buffer, length + 1, "%d", state.score);
     render_text(state.renderer, buffer, (v2) {45.0f, 20.0f}, 20.0f);
 }
 
-void render_asteroids() {
+void render_asteroids(void) {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
         const asteroid *a  = array_list_get(state.asteroids, i);
         SDL_SetRenderDrawColor(state.renderer, a->color, a->color, a->color, 255);
@@ -537,7 +543,7 @@ void render_asteroids() {
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 }
 
-void render_booster() {
+void render_booster(void) {
     const v2 booster_points[] = {
         {-2, -7},
         {0, -13},
@@ -557,7 +563,7 @@ void render_booster() {
     free(new_points);
 }
 
-void render_projectiles() {
+void render_projectiles(void) {
 
     for (int i = 0; i < array_list_size(state.projectiles); i++) {
         const projectile *p  = array_list_get(state.projectiles, i);
@@ -594,7 +600,7 @@ void render_saucer(const v2 pos, const float scale) {
     }
 }
 
-void init_saucer() {
+void init_saucer(void) {
     const float s_angle = randf(0.0f, 1.0f) * (float)M_TAU;
     state.small_saucer.pos = (v2) {randf(0, SCREEN_WIDTH), randf(0, SCREEN_HEIGHT)};
     state.small_saucer.vel = (v2) {-sinf(s_angle), cosf(s_angle)};
@@ -604,7 +610,7 @@ void init_saucer() {
     state.big_saucer.vel = (v2) {-sinf(b_angle), cosf(b_angle)};
 }
 
-void update_hyperspace() {
+void update_hyperspace(void) {
     for (int i = 0; i < 100; i++) {
         if (state.state == GAME_VIEW) {
             state.hyperspace_lines[i].z -= 0.5f;
@@ -624,7 +630,7 @@ void update_hyperspace() {
     }
 }
 
-void render_hyperspace() {
+void render_hyperspace(void) {
     if (state.state == GAME_VIEW) {
         SDL_SetRenderDrawColor(state.renderer, 16, 16, 16, 255);
     } else {
@@ -638,7 +644,7 @@ void render_hyperspace() {
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 }
 
-void init_hyperspace() {
+void init_hyperspace(void) {
     for (int i = 0; i < 100; i++) {
         state.hyperspace_lines[i] = (hyperspace_line) {
             .x = SCREEN_WIDTH / 2.0f, .y = SCREEN_HEIGHT / 2.0f, .z = randf(50.0f, 100.0f),
@@ -647,9 +653,16 @@ void init_hyperspace() {
     }
 }
 
-void projectile_collision_check() {
+void projectile_collision_check(void) {
     for (int i = 0; i < array_list_size(state.projectiles); i++) {
         const projectile *p = array_list_get(state.projectiles, i);
+
+        //Projectile vs ship collision
+        if (v2_dist_sqr(p->pos, state.ship.position) < 150 && p->ttl < 1.25f && !state.dead) {
+            on_ship_hit();
+        }
+
+        // Projectile vs asteroid collision
         for (int j = 0; j < array_list_size(state.asteroids); j++) {
             const asteroid *a  = array_list_get(state.asteroids, j);
 
@@ -664,7 +677,7 @@ void projectile_collision_check() {
     }
 }
 
-int ship_collision_check() {
+int ship_collision_check(void) {
 
     if (state.dead) return 0;
 
@@ -797,16 +810,22 @@ void add_particles(const v2 pos, const int n) {
     }
 }
 
-void add_projectile() {
+void add_projectile(void) {
     if (state.state == OVER_MENU) return;
-    array_list_add(state.projectiles, &(projectile) {
-    .pos = state.ship.position,
-    .vel = v2_scale((v2) {-sinf((state.ship.angle * (float)M_PI) / 180.0f), cosf((state.ship.angle * (float)M_PI) / 180.0f)}, 4.0f)});
-    state.ship.velocity.x += sinf((state.ship.angle * (float)M_PI) / 180.0f);     // apply kickback in the opposite direction
-    state.ship.velocity.y -= cosf((state.ship.angle * (float)M_PI) / 180.0f);
+    array_list_add(state.projectiles, &(projectile){
+                       .pos = state.ship.position,
+                       .ttl = 1.5f,
+                       .vel = v2_scale((v2){
+                                           -sinf((state.ship.angle * (float) M_PI) / 180.0f),
+                                           cosf((state.ship.angle * (float) M_PI) / 180.0f)
+                                       }, 5.0f)
+                   });
+    // apply kickback in the opposite direction
+    state.ship.velocity.x += sinf((state.ship.angle * (float) M_PI) / 180.0f);
+    state.ship.velocity.y -= cosf((state.ship.angle * (float) M_PI) / 180.0f);
 }
 
-void destroy_all_asteroids() {
+void destroy_all_asteroids(void) {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
         const asteroid *a = array_list_get(state.asteroids, i);
         free(a->points);
@@ -818,7 +837,7 @@ void apply_friction(float *v, const float amount) {
     else if (*v < 0) *v = fminf(0, *v + amount);
 }
 
-void cleanup() {
+void cleanup(void) {
     destroy_all_asteroids();
     array_list_free(state.asteroids);
     array_list_free(state.projectiles);
