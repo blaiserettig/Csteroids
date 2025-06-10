@@ -4,6 +4,12 @@
 #include "util/v2.h"
 #include "asteroid.h"
 
+typedef struct {
+    SDL_AudioSpec wav_spec;
+    Uint8 *data;
+    Uint32 length;
+} audio_clip;
+
 void render_ship();
 
 void handle_input();
@@ -12,11 +18,19 @@ void update();
 
 void update_time();
 
+int init_audio(void);
+
+int load_all_audio(void);
+
+void update_audio_streams(void);
+
 Uint32 begin_new_stage(void *userdata, SDL_TimerID timerID, Uint32 interval);
 
 Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval);
 
 Uint32 stop_saucer_exp_render(void *userdata, SDL_TimerID timerID, Uint32 interval);
+
+char* get_asset_path(const char* filename);
 
 void reset_game(void);
 
@@ -97,6 +111,8 @@ void add_projectile(v2 pos, bool from_ship, bool from_small_saucer);
 void destroy_all_asteroids(void);
 
 void destroy_all_timers(void);
+
+void cleanup_audio(void);
 
 void cleanup(void);
 
