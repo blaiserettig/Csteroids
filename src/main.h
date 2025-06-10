@@ -46,7 +46,8 @@ typedef struct {
     SDL_AudioDeviceID audio_device;
     SDL_AudioStream *fire_stream;
     SDL_AudioStream *asteroid_stream;
-    SDL_AudioStream *ship_stream;
+    SDL_AudioStream *ship_fire_stream;
+    SDL_AudioStream *ship_booster_stream;
     SDL_AudioStream *saucer_stream;
     bool quit;
     bool dead;

@@ -134,14 +134,6 @@ int main(int argc, char *argv[]) {
         cleanup();
         return 1;
     }
-    global_time.dt = 0.0f;
-    SDL_GetCurrentTime(&global_time.now);
-    SDL_GetCurrentTime(&global_time.last);
-    state.spawn = true;
-    const SDL_TimerID id = SDL_AddTimer(1500, begin_new_stage, NULL);
-    if (id == 0) {
-        SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
-    }
 
     while (!state.quit) {
         SDL_SetRenderDrawColor(state.renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -183,6 +175,14 @@ void update(void) {
         if (state.state == START_MENU) {
             if (b->tag == 0 && button_press(state.renderer, b)) {
                 // start game button
+                global_time.dt = 0.0f;
+                SDL_GetCurrentTime(&global_time.now);
+                SDL_GetCurrentTime(&global_time.last);
+                state.spawn = true;
+                const SDL_TimerID id = SDL_AddTimer(0001, begin_new_stage, NULL);
+                if (id == 0) {
+                    SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+                }
                 state.state = GAME_VIEW;
             }
             if (b->tag == -1 && button_press(state.renderer, b)) {
@@ -215,7 +215,7 @@ void update(void) {
             if (f < 0.5f) state.s_saucer = true;
             else state.b_saucer = true;
         }
-        state.saucer_spawn_time = randf(20.0f, 35.0f);
+        state.saucer_spawn_time = randf(35.0f, 45.0f);
     }
 
     if (!state.dead) update_ship();
@@ -251,6 +251,7 @@ void update(void) {
     render_score();
     if (state.s_saucer) render_saucer(state.small_saucer.pos, 1.25f);
     if (state.b_saucer) render_saucer(state.big_saucer.pos, 1.75f);
+    if (state.s_saucer || state.b_saucer) keep_saucer_sound_playing();
 
     if (state.dead) render_spacecraft_explosion(false, false);
     if (state.render_s_saucer) render_spacecraft_explosion(true, true);
@@ -285,7 +286,7 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     if (--state.lives < 1) {
         start_game_over();
     } else {
-        play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.respawn);
+        play_sound_effect(AUDIO_STREAM_SHIP_FIRE, audio_clips.respawn);
         state.ship.velocity = (v2){0, 0};
         state.ship.position = (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
         state.ship.angle = 0;
@@ -322,7 +323,7 @@ void reset_state(void) {
     state.b_saucer = false;
     state.render_b_saucer = false;
     state.render_stage_text = true;
-    state.saucer_spawn_time = randf(20.0f, 35.0f);
+    state.saucer_spawn_time = randf(35.0f, 45.0f);
     state.w = 0;
     state.a = 0;
     state.d = 0;
@@ -333,7 +334,7 @@ void reset_state(void) {
 }
 
 void start_game_over(void) {
-    play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.game_over);
+    play_sound_effect(AUDIO_STREAM_SHIP_FIRE, audio_clips.game_over);
     state.state = OVER_MENU;
 }
 
@@ -349,7 +350,7 @@ Uint32 stop_stage_text_render(void *userdata, SDL_TimerID timerID, Uint32 interv
 }
 
 void on_ship_hit(void) {
-    play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.explode);
+    play_sound_effect(AUDIO_STREAM_SHIP_FIRE, audio_clips.explode);
     state.dead = true;
     add_ship_death_lines(25.0f);
     add_particles(state.ship.position, randi(30, 40));
@@ -406,6 +407,9 @@ void update_ship(void) {
         state.ship.velocity.x -= sinf(radians) * (float) THRUST;
         state.ship.velocity.y += cosf(radians) * (float) THRUST;
         render_booster();
+        if (!SDL_GetAudioStreamAvailable(state.ship_booster_stream) > 0) {
+            play_sound_effect(AUDIO_STREAM_SHIP_BOOSTER, audio_clips.booster);
+        }
     }
     if (state.a) {
         state.ship.angle -= 7;
@@ -672,8 +676,8 @@ void init_saucer(void) {
 }
 
 void on_saucer_hit(const bool small) {
-    SDL_ClearAudioStream(state.ship_stream);
-    play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.explode);
+    SDL_ClearAudioStream(state.ship_fire_stream);
+    play_sound_effect(AUDIO_STREAM_SHIP_FIRE, audio_clips.explode);
     stop_saucer_sound();
     if (small) {
         state.score += 1000;

@@ -23,12 +23,14 @@ typedef struct {
     audio_clip respawn;
     audio_clip game_over;
     audio_clip new_stage;
+    audio_clip booster;
 } audio_clips_struct;
 
 typedef enum {
     AUDIO_STREAM_FIRE,
     AUDIO_STREAM_ASTEROID,
-    AUDIO_STREAM_SHIP,
+    AUDIO_STREAM_SHIP_FIRE,
+    AUDIO_STREAM_SHIP_BOOSTER,
     AUDIO_STREAM_SAUCER,
     AUDIO_STREAM_COUNT
 } audio_stream_type;
@@ -40,7 +42,10 @@ void play_sound_effect(audio_stream_type stream_type, audio_clip clip);
 void free_audio_clip(audio_clip *clip);
 int load_all_audio(void);
 
+void init_saucer_sound(void);
 void play_saucer_sound(void);
 void stop_saucer_sound(void);
+void cleanup_saucer_sound(void);
+void keep_saucer_sound_playing(void);
 
 #endif // AUDIO_H

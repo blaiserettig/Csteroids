@@ -104,8 +104,9 @@ int init_audio(void) {
     const StreamInfo streams[] = {
         {&state.fire_stream, "fire"},
         {&state.asteroid_stream, "asteroid"},
-        {&state.ship_stream, "ship"},
-        {&state.saucer_stream, "saucer"}
+        {&state.ship_fire_stream, "ship"},
+        {&state.saucer_stream, "saucer"},
+        {&state.ship_booster_stream, "booster"}
     };
 
     const int num_streams = sizeof(streams) / sizeof(streams[0]);
@@ -150,9 +151,13 @@ void play_sound_effect(const audio_stream_type stream_type, const audio_clip cli
             stream = state.asteroid_stream;
             stream_name = "asteroid";
             break;
-        case AUDIO_STREAM_SHIP:
-            stream = state.ship_stream;
+        case AUDIO_STREAM_SHIP_FIRE:
+            stream = state.ship_fire_stream;
             stream_name = "ship";
+            break;
+        case AUDIO_STREAM_SHIP_BOOSTER:
+            stream = state.ship_booster_stream;
+            stream_name = "booster";
             break;
         case AUDIO_STREAM_SAUCER:
             stream = state.saucer_stream;
@@ -306,6 +311,7 @@ int load_all_audio(void) {
         {"RESPAWN.wav", &audio_clips.respawn},
         {"GAME_OVER.wav", &audio_clips.game_over},
         {"NEW_STAGE.wav", &audio_clips.new_stage},
+        {"BOOSTER.wav", &audio_clips.booster},
     };
 
     const int file_count = sizeof(audio_files) / sizeof(audio_files[0]);
@@ -313,24 +319,28 @@ int load_all_audio(void) {
 }
 
 
-int generate_saucer_sound(audio_clip* clip) {
+// Global state for saucer sound
+static audio_clip saucer_loop_clip = {0};
+static bool saucer_sound_initialized = false;
 
+int generate_saucer_loop(audio_clip* clip) {
     const SDL_AudioSpec target_spec = {
         .format = SDL_AUDIO_S16,
         .channels = 2,
         .freq = 44100
     };
 
-    // yes, this means if the saucer is on screen for more than 2 min, then the audio stops. oh well!
-    const float duration = 120.0f;
+    // Create a seamless loop - duration should be a multiple of the warble period
+    const float warble_rate = 4.0f;
+    const float loop_duration = 1.0f / warble_rate; // One complete warble cycle
     const int sample_rate = target_spec.freq;
-    const int num_samples = (int)(duration * (float)sample_rate);
+    const int num_samples = (int)(loop_duration * (float)sample_rate);
     const int bytes_per_sample = 2 * target_spec.channels;
     const int buffer_size = num_samples * bytes_per_sample;
 
     clip->data = (Uint8*)malloc(buffer_size);
     if (!clip->data) {
-        SDL_Log("Failed to allocate memory for saucer sound");
+        SDL_Log("Failed to allocate memory for saucer loop");
         return -1;
     }
 
@@ -338,12 +348,11 @@ int generate_saucer_sound(audio_clip* clip) {
     clip->wav_spec = target_spec;
 
     Sint16* samples = (Sint16*)clip->data;
-    float phase = 0.0f; // Phase accumulator for the oscillator
+    float phase = 0.0f;
 
     for (int i = 0; i < num_samples; i++) {
         const float high_freq = 800.0f;
         const float low_freq = 600.0f;
-        const float warble_rate = 4.0f;
         const float amplitude = 500.0f;
 
         const float t = (float)i / (float)sample_rate;
@@ -367,19 +376,57 @@ int generate_saucer_sound(audio_clip* clip) {
         samples[i * 2 + 1] = sample; // Right
     }
 
-    SDL_Log("Saucer sound generated: %u bytes", clip->length);
+    SDL_Log("Saucer loop generated: %u bytes", clip->length);
     return 0;
 }
+
+void init_saucer_sound(void) {
+    if (!saucer_sound_initialized) {
+        if (generate_saucer_loop(&saucer_loop_clip) == 0) {
+            saucer_sound_initialized = true;
+            SDL_Log("Saucer sound initialized");
+        } else {
+            SDL_Log("Failed to initialize saucer sound");
+        }
+    }
+}
+
 void play_saucer_sound(void) {
-    audio_clip saucer_clip = {0};
-    if (generate_saucer_sound(&saucer_clip) == 0) {
-        play_sound_effect(AUDIO_STREAM_SAUCER, saucer_clip);
-        free_audio_clip(&saucer_clip);
+    if (!saucer_sound_initialized) {
+        init_saucer_sound();
+    }
+
+    if (saucer_sound_initialized) {
+        for (int i = 0; i < 10; i++) {
+            play_sound_effect(AUDIO_STREAM_SAUCER, saucer_loop_clip);
+        }
+        SDL_Log("Started looping saucer sound");
     } else {
-        SDL_Log("Failed to generate saucer sound");
+        SDL_Log("Failed to start saucer sound - not initialized");
     }
 }
 
 void stop_saucer_sound(void) {
     SDL_ClearAudioStream(state.saucer_stream);
+    SDL_Log("Stopped saucer sound");
+}
+
+void cleanup_saucer_sound(void) {
+    if (saucer_sound_initialized) {
+        free_audio_clip(&saucer_loop_clip);
+        saucer_sound_initialized = false;
+        SDL_Log("Saucer sound cleaned up");
+    }
+}
+
+void keep_saucer_sound_playing(void) {
+    if (!saucer_sound_initialized) return;
+
+    int queued_bytes = SDL_GetAudioStreamQueued(state.saucer_stream);
+    const int target_bytes = (int)saucer_loop_clip.length * 3; // Keep 3 loops queued
+
+    while (queued_bytes < target_bytes) {
+        play_sound_effect(AUDIO_STREAM_SAUCER, saucer_loop_clip);
+        queued_bytes += (int)saucer_loop_clip.length;
+    }
 }
