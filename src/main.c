@@ -207,6 +207,7 @@ void update(void) {
     if (!state.s_saucer && !state.b_saucer) state.saucer_spawn_time -= (float) global_time.dt;
     if (state.saucer_spawn_time < 0.0f && !state.s_saucer && !state.b_saucer) {
         init_saucer();
+        play_saucer_sound();
         if (state.score >= 40000) {
             state.s_saucer = true;
         } else {
@@ -221,7 +222,9 @@ void update(void) {
     update_asteroids();
     update_projectiles();
     update_asteroid_explosion_particles();
-    if (state.s_saucer || state.b_saucer) update_saucer();
+    if (state.s_saucer || state.b_saucer) {
+        update_saucer();
+    }
 
     if (ship_collision_check() > 0) {
         on_ship_hit();
@@ -470,6 +473,9 @@ void handle_input(void) {
                     case SDL_SCANCODE_A:
                         state.a = 1;
                         break;
+                    case SDL_SCANCODE_F:
+                        play_saucer_sound();
+                        break;
                     case SDL_SCANCODE_SPACE:
                         const SDL_KeyboardEvent e = event.key;
                         if (!e.repeat) add_projectile(state.ship.position, true, false);
@@ -668,6 +674,7 @@ void init_saucer(void) {
 void on_saucer_hit(const bool small) {
     SDL_ClearAudioStream(state.ship_stream);
     play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.explode);
+    stop_saucer_sound();
     if (small) {
         state.score += 1000;
         add_particles(state.small_saucer.pos, 25);

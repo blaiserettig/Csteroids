@@ -311,3 +311,75 @@ int load_all_audio(void) {
     const int file_count = sizeof(audio_files) / sizeof(audio_files[0]);
     return load_audio_files(audio_files, file_count);
 }
+
+
+int generate_saucer_sound(audio_clip* clip) {
+
+    const SDL_AudioSpec target_spec = {
+        .format = SDL_AUDIO_S16,
+        .channels = 2,
+        .freq = 44100
+    };
+
+    // yes, this means if the saucer is on screen for more than 2 min, then the audio stops. oh well!
+    const float duration = 120.0f;
+    const int sample_rate = target_spec.freq;
+    const int num_samples = (int)(duration * (float)sample_rate);
+    const int bytes_per_sample = 2 * target_spec.channels;
+    const int buffer_size = num_samples * bytes_per_sample;
+
+    clip->data = (Uint8*)malloc(buffer_size);
+    if (!clip->data) {
+        SDL_Log("Failed to allocate memory for saucer sound");
+        return -1;
+    }
+
+    clip->length = buffer_size;
+    clip->wav_spec = target_spec;
+
+    Sint16* samples = (Sint16*)clip->data;
+    float phase = 0.0f; // Phase accumulator for the oscillator
+
+    for (int i = 0; i < num_samples; i++) {
+        const float high_freq = 800.0f;
+        const float low_freq = 600.0f;
+        const float warble_rate = 4.0f;
+        const float amplitude = 500.0f;
+
+        const float t = (float)i / (float)sample_rate;
+
+        const float warble_lfo = sinf(2.0f * (float)M_PI * warble_rate * t);
+        const float freq = low_freq + (high_freq - low_freq) * (warble_lfo * 0.5f + 0.5f);
+
+        phase += 2.0f * (float)M_PI * freq / (float)sample_rate;
+        phase = fmodf(phase, 2.0f * (float)M_PI);
+
+        const float sawtooth = (phase / (float)M_PI) - 1.0f;
+
+        float distorted = sawtooth + 0.3f * sinf(3.0f * phase) + 0.1f * sinf(5.0f * phase);
+
+        if (distorted > 1.0f) distorted = 1.0f;
+        if (distorted < -1.0f) distorted = -1.0f;
+
+        const Sint16 sample = (Sint16)(distorted * amplitude);
+
+        samples[i * 2] = sample;     // Left
+        samples[i * 2 + 1] = sample; // Right
+    }
+
+    SDL_Log("Saucer sound generated: %u bytes", clip->length);
+    return 0;
+}
+void play_saucer_sound(void) {
+    audio_clip saucer_clip = {0};
+    if (generate_saucer_sound(&saucer_clip) == 0) {
+        play_sound_effect(AUDIO_STREAM_SAUCER, saucer_clip);
+        free_audio_clip(&saucer_clip);
+    } else {
+        SDL_Log("Failed to generate saucer sound");
+    }
+}
+
+void stop_saucer_sound(void) {
+    SDL_ClearAudioStream(state.saucer_stream);
+}

@@ -40,4 +40,7 @@ void play_sound_effect(audio_stream_type stream_type, audio_clip clip);
 void free_audio_clip(audio_clip *clip);
 int load_all_audio(void);
 
+void play_saucer_sound(void);
+void stop_saucer_sound(void);
+
 #endif // AUDIO_H
