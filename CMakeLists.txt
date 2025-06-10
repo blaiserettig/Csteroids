@@ -24,3 +24,8 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # Link SDL3
 target_link_libraries(main ${CMAKE_SOURCE_DIR}/lib/libSDL3.dll.a)
 
+# Copy SDL3.dll to the build directory after building
+add_custom_command(TARGET main POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/bin/SDL3.dll"
+        $<TARGET_FILE_DIR:main>)
