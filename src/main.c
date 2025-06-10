@@ -30,13 +30,7 @@
 
 game_state state = {0};
 
-struct {
-    SDL_Time now;
-    SDL_Time last;
-    double dt;
-    float scale;
-} global_time;
-
+g_time global_time = {0};
 
 v2 ship_points[] = {
     {-5, -10},
@@ -163,6 +157,7 @@ void update(void) {
     if (state.state == GAME_VIEW) {
         update_hyperspace();
         render_hyperspace();
+        music_update();
     }
 
     if (state.state == OVER_MENU) {
@@ -269,6 +264,7 @@ void update_time(void) {
 // Weirdly it does not warn about the succeeding function which does the same thing
 Uint32 begin_new_stage(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     play_sound_effect(AUDIO_STREAM_SAUCER, audio_clips.new_stage);
+    music_start();
     const int n = state.score < randi(40000, 60000) ? ++state.prev_ast : state.prev_ast;
     for (int i = 0; i < n; i++) {
         add_new_asteroid(LARGE, (v2){NAN, NAN});
@@ -287,6 +283,7 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
         start_game_over();
     } else {
         play_sound_effect(AUDIO_STREAM_SHIP_FIRE, audio_clips.respawn);
+        music_start();
         state.ship.velocity = (v2){0, 0};
         state.ship.position = (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
         state.ship.angle = 0;
@@ -351,6 +348,7 @@ Uint32 stop_stage_text_render(void *userdata, SDL_TimerID timerID, Uint32 interv
 
 void on_ship_hit(void) {
     play_sound_effect(AUDIO_STREAM_SHIP_FIRE, audio_clips.explode);
+    music_stop();
     state.dead = true;
     add_ship_death_lines(25.0f);
     add_particles(state.ship.position, randi(30, 40));
@@ -1060,6 +1058,8 @@ void apply_friction(float *v, const float amount) {
 
 void cleanup(void) {
     destroy_all_asteroids();
+    music_cleanup();
+    cleanup_saucer_sound();
     array_list_free(state.asteroids);
     array_list_free(state.projectiles);
     array_list_free(state.asteroid_particles);

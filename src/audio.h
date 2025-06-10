@@ -24,6 +24,8 @@ typedef struct {
     audio_clip game_over;
     audio_clip new_stage;
     audio_clip booster;
+    audio_clip bloop_lo;
+    audio_clip bloop_hi;
 } audio_clips_struct;
 
 typedef enum {
@@ -32,6 +34,7 @@ typedef enum {
     AUDIO_STREAM_SHIP_FIRE,
     AUDIO_STREAM_SHIP_BOOSTER,
     AUDIO_STREAM_SAUCER,
+    AUDIO_STREAM_MUSIC,
     AUDIO_STREAM_COUNT
 } audio_stream_type;
 
@@ -47,5 +50,10 @@ void play_saucer_sound(void);
 void stop_saucer_sound(void);
 void cleanup_saucer_sound(void);
 void keep_saucer_sound_playing(void);
+
+void music_start(void);
+void music_stop(void);
+void music_update(void);
+void music_cleanup(void);
 
 #endif // AUDIO_H

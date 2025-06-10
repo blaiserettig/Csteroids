@@ -40,6 +40,13 @@ typedef struct {
 } big_saucer, small_saucer;
 
 typedef struct {
+    SDL_Time now;
+    SDL_Time last;
+    double dt;
+    float scale;
+} g_time;
+
+typedef struct {
     SDL_Window *window;
     SDL_Texture *texture;
     SDL_Renderer *renderer;
@@ -49,6 +56,7 @@ typedef struct {
     SDL_AudioStream *ship_fire_stream;
     SDL_AudioStream *ship_booster_stream;
     SDL_AudioStream *saucer_stream;
+    SDL_AudioStream *music_stream;
     bool quit;
     bool dead;
     bool spawn;
@@ -84,6 +92,8 @@ typedef struct {
 } game_state;
 
 extern game_state state;
+
+extern g_time global_time;
 
 void render_ship();
 
@@ -188,8 +198,6 @@ void add_projectile(v2 pos, bool from_ship, bool from_small_saucer);
 void destroy_all_asteroids(void);
 
 void destroy_all_timers(void);
-
-void cleanup_audio(void);
 
 void cleanup(void);
 
