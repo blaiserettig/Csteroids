@@ -3,12 +3,87 @@
 
 #include "util/v2.h"
 #include "asteroid.h"
+#include "audio.h"
+#include "util/array_list.h"
 
 typedef struct {
-    SDL_AudioSpec wav_spec;
-    Uint8 *data;
-    Uint32 length;
-} audio_clip;
+    v2 position;
+    v2 velocity;
+    float angle;
+    float speedScale;
+} ship;
+
+typedef struct {
+    v2 pos;
+    v2 vel;
+    v2 p1;
+    v2 p2;
+    float ttl;
+} death_line;
+
+typedef struct {
+    v2 pos;
+    v2 vel;
+    float ttl;
+} projectile;
+
+typedef struct {
+    float x, y, z;
+    float target_x, target_y;
+} hyperspace_line;
+
+typedef struct {
+    v2 pos;
+    v2 vel;
+    float shoot_timer;
+    float direction_timer;
+} big_saucer, small_saucer;
+
+typedef struct {
+    SDL_Window *window;
+    SDL_Texture *texture;
+    SDL_Renderer *renderer;
+    SDL_AudioDeviceID audio_device;
+    SDL_AudioStream *sfx_stream;
+    audio_clip fire;
+    audio_clip explode;
+    audio_clip saucer;
+    audio_clip asteroid_hit;
+    bool quit;
+    bool dead;
+    bool spawn;
+    bool s_saucer;
+    bool render_s_saucer;
+    bool b_saucer;
+    bool render_b_saucer;
+    bool render_stage_text;
+    ship ship;
+    ArrayList *asteroids;
+    ArrayList *projectiles;
+    ArrayList *asteroid_particles;
+    ArrayList *buttons;
+    death_line ship_death_lines[5];
+    death_line saucer_death_lines[12];
+    hyperspace_line hyperspace_lines[100];
+    big_saucer big_saucer;
+    small_saucer small_saucer;
+    float saucer_spawn_time;
+    int lives;
+    int score;
+    int stage;
+    int prev_ast;
+    int w;
+    int a;
+    int d;
+
+    enum {
+        START_MENU,
+        GAME_VIEW,
+        OVER_MENU,
+    } state;
+} game_state;
+
+extern game_state state;
 
 void render_ship();
 

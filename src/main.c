@@ -19,6 +19,7 @@
 
 #include "button.h"
 #include "text.h"
+#include "audio.h"
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
@@ -27,79 +28,7 @@
 #define M_TAU (M_PI * 2)
 #define MAX_SFX_STREAMS 8
 
-typedef struct {
-    v2 position;
-    v2 velocity;
-    float angle;
-    float speedScale;
-} ship;
-
-typedef struct {
-    v2 pos;
-    v2 vel;
-    v2 p1;
-    v2 p2;
-    float ttl;
-} death_line;
-
-typedef struct {
-    v2 pos;
-    v2 vel;
-    float ttl;
-} projectile;
-
-typedef struct {
-    float x, y, z;
-    float target_x, target_y;
-} hyperspace_line;
-
-typedef struct {
-    v2 pos;
-    v2 vel;
-    float shoot_timer;
-    float direction_timer;
-} big_saucer, small_saucer;
-
-struct {
-    SDL_Window *window;
-    SDL_Texture *texture;
-    SDL_Renderer *renderer;
-    SDL_AudioDeviceID audio_device;
-    SDL_AudioStream *sfx_stream;
-    audio_clip fire;
-    bool quit;
-    bool dead;
-    bool spawn;
-    bool s_saucer;
-    bool render_s_saucer;
-    bool b_saucer;
-    bool render_b_saucer;
-    bool render_stage_text;
-    ship ship;
-    ArrayList *asteroids;
-    ArrayList *projectiles;
-    ArrayList *asteroid_particles;
-    ArrayList *buttons;
-    death_line ship_death_lines[5];
-    death_line saucer_death_lines[12];
-    hyperspace_line hyperspace_lines[100];
-    big_saucer big_saucer;
-    small_saucer small_saucer;
-    float saucer_spawn_time;
-    int lives;
-    int score;
-    int stage;
-    int prev_ast;
-    int w;
-    int a;
-    int d;
-
-    enum {
-        START_MENU,
-        GAME_VIEW,
-        OVER_MENU,
-    } state;
-} state;
+game_state state = {0};
 
 struct {
     SDL_Time now;
@@ -107,6 +36,7 @@ struct {
     double dt;
     float scale;
 } global_time;
+
 
 v2 ship_points[] = {
     {-5, -10},
@@ -133,6 +63,7 @@ v2 saucer_points[] = {
 };
 
 int main(int argc, char *argv[]) {
+
     srand((unsigned int) time(NULL));
 
     state.ship.position.x = SCREEN_WIDTH / 2.0;
@@ -242,182 +173,6 @@ int main(int argc, char *argv[]) {
 
     cleanup();
     return 0;
-}
-
-int init_audio(void) {
-    SDL_Log("Initializing audio...");
-
-    state.audio_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
-    if (!state.audio_device) {
-        SDL_Log("SDL_OpenAudioDevice Error: %s", SDL_GetError());
-        return 1;
-    }
-    SDL_Log("Audio device opened successfully: %u", state.audio_device);
-
-    if (state.audio_device == 0) {
-        SDL_Log("Invalid audio device ID returned");
-        return 1;
-    }
-
-    SDL_AudioSpec spec = {0};
-    spec.format = SDL_AUDIO_S16;
-    spec.channels = 2;
-    spec.freq = 44100;
-
-    state.sfx_stream = SDL_CreateAudioStream(&spec, &spec);
-    if (!state.sfx_stream) {
-        SDL_Log("Failed to create audio stream: %s", SDL_GetError());
-        SDL_CloseAudioDevice(state.audio_device);
-        return 1;
-    }
-    SDL_Log("Audio stream created successfully");
-
-    int test_queued = SDL_GetAudioStreamQueued(state.sfx_stream);
-    SDL_Log("Stream test - queued bytes: %d", test_queued);
-    if (test_queued < 0) {
-        SDL_Log("Stream is invalid immediately after creation!");
-        return 1;
-    }
-
-    if (!SDL_BindAudioStream(state.audio_device, state.sfx_stream)) {
-        SDL_Log("Failed to bind audio stream: %s", SDL_GetError());
-        SDL_DestroyAudioStream(state.sfx_stream);
-        SDL_CloseAudioDevice(state.audio_device);
-        return 1;
-    }
-    SDL_Log("Audio stream bound to device");
-
-    test_queued = SDL_GetAudioStreamQueued(state.sfx_stream);
-    SDL_Log("Stream test after binding - queued bytes: %d", test_queued);
-    if (test_queued < 0) {
-        SDL_Log("Stream became invalid after binding!");
-        return 1;
-    }
-
-    if (!SDL_ResumeAudioDevice(state.audio_device)) {
-        SDL_Log("Failed to resume audio device: %s", SDL_GetError());
-        return 1;
-    }
-    SDL_Log("Audio device resumed");
-
-    return 0;
-}
-
-void play_sound_effect(const audio_clip clip) {
-    SDL_Log("Playing sound effect: %u bytes", clip.length);
-
-    const int before_queued = SDL_GetAudioStreamQueued(state.sfx_stream);
-    SDL_Log("Audio queued before: %d bytes", before_queued);
-
-    const bool result = SDL_PutAudioStreamData(state.sfx_stream, clip.data, (int) clip.length);
-    if (!result) {
-        SDL_Log("Failed to put audio data: %s", SDL_GetError());
-        return;
-    }
-
-    const int after_queued = SDL_GetAudioStreamQueued(state.sfx_stream);
-    SDL_Log("Audio queued after: %d bytes", after_queued);
-}
-
-int load_audio_clip(const char *filename, audio_clip *clip) {
-    SDL_Log("Loading audio file: %s", filename);
-
-    SDL_AudioSpec wav_spec;
-    Uint8 *wav_buffer;
-    Uint32 wav_length;
-
-    if (!SDL_LoadWAV(filename, &wav_spec, &wav_buffer, &wav_length)) {
-        SDL_Log("Failed to load audio file '%s': %s", filename, SDL_GetError());
-        return -1;
-    }
-
-    SDL_Log("Loaded WAV: %d Hz, %d channels, format %d, length %u bytes",
-            wav_spec.freq, wav_spec.channels, wav_spec.format, wav_length);
-
-    const SDL_AudioSpec target_spec = {.format = SDL_AUDIO_S16, .channels = 2, .freq = 44100};
-
-    if (wav_spec.format == target_spec.format &&
-        wav_spec.channels == target_spec.channels &&
-        wav_spec.freq == target_spec.freq) {
-
-        SDL_Log("No conversion needed, using original data");
-        clip->wav_spec = wav_spec;
-        clip->length = wav_length;
-        clip->data = malloc(wav_length);
-        SDL_memcpy(clip->data, wav_buffer, wav_length);
-        SDL_free(wav_buffer);
-        return 0;
-        }
-
-    Uint8 *cvt_buffer = NULL;
-    int cvt_len = 0;
-
-    SDL_Log("Converting audio format...");
-    const bool success = SDL_ConvertAudioSamples(&wav_spec, wav_buffer, (int)wav_length,
-                                          &target_spec, &cvt_buffer, &cvt_len);
-
-    if (!success || !cvt_buffer || cvt_len <= 0) {
-        SDL_Log("Failed to convert audio: %s", SDL_GetError());
-        SDL_free(wav_buffer);
-        return -1;
-    }
-
-    SDL_Log("Converted audio: %d bytes -> %d bytes", wav_length, cvt_len);
-
-    clip->wav_spec = target_spec;
-    clip->length = cvt_len;
-    clip->data = cvt_buffer;
-
-    SDL_free(wav_buffer);
-    return 0;
-}
-
-int load_all_audio(void) {
-    SDL_Log("Starting load_all_audio...");
-
-    char* fire_path = get_asset_path("FIRE.wav");
-    if (!fire_path) {
-        SDL_Log("Failed to get asset path");
-        return -1;
-    }
-    SDL_Log("Fire path: %s", fire_path);
-
-    const int result = load_audio_clip(fire_path, &state.fire);
-    SDL_Log("load_audio_clip returned: %d", result);
-    SDL_Log("Loaded clip length: %u", state.fire.length);
-    SDL_Log("Loaded clip data pointer: %p", (void*)state.fire.data);
-
-    free(fire_path);
-
-    if (result < 0) return -1;
-    return 0;
-}
-
-char* get_asset_path(const char* filename) {
-    const char* base_path = SDL_GetBasePath();
-    if (!base_path) {
-        SDL_Log("Failed to get base path: %s", SDL_GetError());
-        return NULL;
-    }
-
-    const size_t path_len = strlen(base_path) + strlen("assets/") + strlen(filename) + 1;
-    char* full_path = malloc(path_len);
-
-    snprintf(full_path, path_len, "%sassets/%s", base_path, filename);
-
-    SDL_Log("Asset path: %s", full_path);
-
-    SDL_IOStream *file = SDL_IOFromFile(full_path, "rb");
-    if (file) {
-        const Sint64 file_size = SDL_GetIOSize(file);
-        SDL_Log("File exists and is readable, size: %lld bytes", (long long)file_size);
-        SDL_CloseIO(file);
-    } else {
-        SDL_Log("File does not exist or is not readable: %s", SDL_GetError());
-    }
-
-    SDL_free((void*)base_path);
-    return full_path;
 }
 
 void update(void) {
@@ -601,6 +356,7 @@ Uint32 stop_stage_text_render(void *userdata, SDL_TimerID timerID, Uint32 interv
 }
 
 void on_ship_hit(void) {
+    play_sound_effect(state.explode);
     state.dead = true;
     add_ship_death_lines(25.0f);
     add_particles(state.ship.position, randi(30, 40));
@@ -1125,6 +881,7 @@ void highlight_collision(const v2 v) {
 }
 
 void on_asteroid_hit(const asteroid *a, const int i) {
+    play_sound_effect(state.asteroid_hit);
     const int last_div = state.score / 10000;
     add_particles(a->position, randi(15, 20));
     switch (a->size) {
