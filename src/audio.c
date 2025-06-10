@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+audio_clips_struct audio_clips = {0};
+
 char* get_asset_path(const char* filename) {
     const char* possible_paths[] = {
         "./assets/",
@@ -40,6 +42,40 @@ char* get_asset_path(const char* filename) {
 }
 
 
+static SDL_AudioStream* create_and_bind_stream(const char* name, const SDL_AudioSpec* spec) {
+    SDL_AudioStream* stream = SDL_CreateAudioStream(spec, spec);
+    if (!stream) {
+        SDL_Log("Failed to create %s audio stream: %s", name, SDL_GetError());
+        return NULL;
+    }
+    SDL_Log("%s audio stream created successfully", name);
+
+    int test_queued = SDL_GetAudioStreamQueued(stream);
+    SDL_Log("%s stream test - queued bytes: %d", name, test_queued);
+    if (test_queued < 0) {
+        SDL_Log("%s stream is invalid immediately after creation!", name);
+        SDL_DestroyAudioStream(stream);
+        return NULL;
+    }
+
+    if (!SDL_BindAudioStream(state.audio_device, stream)) {
+        SDL_Log("Failed to bind %s audio stream: %s", name, SDL_GetError());
+        SDL_DestroyAudioStream(stream);
+        return NULL;
+    }
+    SDL_Log("%s audio stream bound to device", name);
+
+    test_queued = SDL_GetAudioStreamQueued(stream);
+    SDL_Log("%s stream test after binding - queued bytes: %d", name, test_queued);
+    if (test_queued < 0) {
+        SDL_Log("%s stream became invalid after binding!", name);
+        SDL_DestroyAudioStream(stream);
+        return NULL;
+    }
+
+    return stream;
+}
+
 int init_audio(void) {
     SDL_Log("Initializing audio...");
 
@@ -60,34 +96,33 @@ int init_audio(void) {
     spec.channels = 2;
     spec.freq = 44100;
 
-    state.sfx_stream = SDL_CreateAudioStream(&spec, &spec);
-    if (!state.sfx_stream) {
-        SDL_Log("Failed to create audio stream: %s", SDL_GetError());
-        SDL_CloseAudioDevice(state.audio_device);
-        return 1;
-    }
-    SDL_Log("Audio stream created successfully");
+    typedef struct {
+        SDL_AudioStream** stream_ptr;
+        const char* name;
+    } StreamInfo;
 
-    int test_queued = SDL_GetAudioStreamQueued(state.sfx_stream);
-    SDL_Log("Stream test - queued bytes: %d", test_queued);
-    if (test_queued < 0) {
-        SDL_Log("Stream is invalid immediately after creation!");
-        return 1;
-    }
+    const StreamInfo streams[] = {
+        {&state.fire_stream, "fire"},
+        {&state.asteroid_stream, "asteroid"},
+        {&state.ship_stream, "ship"},
+        {&state.saucer_stream, "saucer"}
+    };
 
-    if (!SDL_BindAudioStream(state.audio_device, state.sfx_stream)) {
-        SDL_Log("Failed to bind audio stream: %s", SDL_GetError());
-        SDL_DestroyAudioStream(state.sfx_stream);
-        SDL_CloseAudioDevice(state.audio_device);
-        return 1;
-    }
-    SDL_Log("Audio stream bound to device");
+    const int num_streams = sizeof(streams) / sizeof(streams[0]);
 
-    test_queued = SDL_GetAudioStreamQueued(state.sfx_stream);
-    SDL_Log("Stream test after binding - queued bytes: %d", test_queued);
-    if (test_queued < 0) {
-        SDL_Log("Stream became invalid after binding!");
-        return 1;
+    for (int i = 0; i < num_streams; i++) {
+        *streams[i].stream_ptr = create_and_bind_stream(streams[i].name, &spec);
+        if (!*streams[i].stream_ptr) {
+            SDL_Log("Failed to initialize %s stream", streams[i].name);
+            for (int j = 0; j < i; j++) {
+                if (*streams[j].stream_ptr) {
+                    SDL_DestroyAudioStream(*streams[j].stream_ptr);
+                    *streams[j].stream_ptr = NULL;
+                }
+            }
+            SDL_CloseAudioDevice(state.audio_device);
+            return 1;
+        }
     }
 
     if (!SDL_ResumeAudioDevice(state.audio_device)) {
@@ -96,24 +131,49 @@ int init_audio(void) {
     }
     SDL_Log("Audio device resumed");
 
+    SDL_Log("All audio streams initialized successfully");
     return 0;
 }
 
-void play_sound_effect(const audio_clip clip) {
+void play_sound_effect(const audio_stream_type stream_type, const audio_clip clip) {
     SDL_Log("Playing sound effect: %u bytes", clip.length);
 
-    const int before_queued = SDL_GetAudioStreamQueued(state.sfx_stream);
-    SDL_Log("Audio queued before: %d bytes", before_queued);
+    SDL_AudioStream* stream = NULL;
+    const char* stream_name = NULL;
 
-    const bool result = SDL_PutAudioStreamData(state.sfx_stream, clip.data, (int) clip.length);
-    if (!result) {
-        SDL_Log("Failed to put audio data: %s", SDL_GetError());
+    switch (stream_type) {
+        case AUDIO_STREAM_FIRE:
+            stream = state.fire_stream;
+            stream_name = "fire";
+            break;
+        case AUDIO_STREAM_ASTEROID:
+            stream = state.asteroid_stream;
+            stream_name = "asteroid";
+            break;
+        case AUDIO_STREAM_SHIP:
+            stream = state.ship_stream;
+            stream_name = "ship";
+            break;
+        case AUDIO_STREAM_SAUCER:
+            stream = state.saucer_stream;
+            stream_name = "saucer";
+            break;
+        default:
+            SDL_Log("Invalid audio stream type: %d", stream_type);
+            return;
+    }
+
+    if (!stream) {
+        SDL_Log("Audio stream %s is not initialized", stream_name);
         return;
     }
 
-    const int after_queued = SDL_GetAudioStreamQueued(state.sfx_stream);
-    SDL_Log("Audio queued after: %d bytes", after_queued);
+    const bool result = SDL_PutAudioStreamData(stream, clip.data, (int) clip.length);
+    if (!result) {
+        SDL_Log("Failed to put audio data to %s stream: %s", stream_name, SDL_GetError());
+    }
 }
+
 
 int load_audio_clip(const char *filename, audio_clip *clip) {
     SDL_Log("Loading audio file: %s", filename);
@@ -239,13 +299,13 @@ int load_audio_files(const audio_file_entry* files, const int count) {
 }
 
 int load_all_audio(void) {
-    SDL_Log("Starting load_all_audio...");
-
     const audio_file_entry audio_files[] = {
-        {"FIRE.wav", &state.fire},
-        //{"SAUCER.wav", &state.saucer},
-        {"ASTEROID_HIT.wav", &state.asteroid_hit},
-        {"EXPLODE.wav", &state.explode},
+        {"FIRE.wav", &audio_clips.fire},
+        {"ASTEROID_HIT.wav", &audio_clips.asteroid_hit},
+        {"EXPLODE.wav", &audio_clips.explode},
+        {"RESPAWN.wav", &audio_clips.respawn},
+        {"GAME_OVER.wav", &audio_clips.game_over},
+        {"NEW_STAGE.wav", &audio_clips.new_stage},
     };
 
     const int file_count = sizeof(audio_files) / sizeof(audio_files[0]);

@@ -15,13 +15,29 @@ typedef struct {
     audio_clip* destination;
 } audio_file_entry;
 
-char* get_asset_path(const char* filename);
+typedef struct {
+    audio_clip fire;
+    audio_clip explode;
+    audio_clip saucer;
+    audio_clip asteroid_hit;
+    audio_clip respawn;
+    audio_clip game_over;
+    audio_clip new_stage;
+} audio_clips_struct;
+
+typedef enum {
+    AUDIO_STREAM_FIRE,
+    AUDIO_STREAM_ASTEROID,
+    AUDIO_STREAM_SHIP,
+    AUDIO_STREAM_SAUCER,
+    AUDIO_STREAM_COUNT
+} audio_stream_type;
+
+extern audio_clips_struct audio_clips;
+
 int init_audio(void);
-void play_sound_effect(const audio_clip clip);
-int load_audio_clip(const char *filename, audio_clip *clip);
+void play_sound_effect(audio_stream_type stream_type, audio_clip clip);
 void free_audio_clip(audio_clip *clip);
-int load_audio_file(const char* filename, audio_clip* clip);
-int load_audio_files(const audio_file_entry* files, const int count);
 int load_all_audio(void);
 
 #endif // AUDIO_H

@@ -44,11 +44,10 @@ typedef struct {
     SDL_Texture *texture;
     SDL_Renderer *renderer;
     SDL_AudioDeviceID audio_device;
-    SDL_AudioStream *sfx_stream;
-    audio_clip fire;
-    audio_clip explode;
-    audio_clip saucer;
-    audio_clip asteroid_hit;
+    SDL_AudioStream *fire_stream;
+    SDL_AudioStream *asteroid_stream;
+    SDL_AudioStream *ship_stream;
+    SDL_AudioStream *saucer_stream;
     bool quit;
     bool dead;
     bool spawn;
@@ -96,6 +95,8 @@ void update_time();
 int init_audio(void);
 
 int load_all_audio(void);
+
+void reset_state(void);
 
 void update_audio_streams(void);
 

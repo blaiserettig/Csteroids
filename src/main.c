@@ -66,25 +66,7 @@ int main(int argc, char *argv[]) {
 
     srand((unsigned int) time(NULL));
 
-    state.ship.position.x = SCREEN_WIDTH / 2.0;
-    state.ship.position.y = SCREEN_HEIGHT / 2.0;
-    state.ship.velocity.x = 0;
-    state.ship.velocity.y = 0;
-    state.ship.angle = 0;
-    state.dead = false;
-    state.spawn = false;
-    state.s_saucer = false;
-    state.render_s_saucer = false;
-    state.b_saucer = false;
-    state.render_b_saucer = false;
-    state.render_stage_text = true;
-    state.saucer_spawn_time = randf(20.0f, 35.0f);
-    state.w = 0;
-    state.a = 0;
-    state.d = 0;
-    state.stage = 1;
-    state.lives = 3;
-    state.score = 0;
+    reset_state();
     state.state = START_MENU;
 
     state.asteroids = array_list_create(sizeof(asteroid));
@@ -155,7 +137,6 @@ int main(int argc, char *argv[]) {
     global_time.dt = 0.0f;
     SDL_GetCurrentTime(&global_time.now);
     SDL_GetCurrentTime(&global_time.last);
-    state.prev_ast = randi(4, 6);
     state.spawn = true;
     const SDL_TimerID id = SDL_AddTimer(1500, begin_new_stage, NULL);
     if (id == 0) {
@@ -283,6 +264,7 @@ void update_time(void) {
 // Clion warns that this function always returns 0, which is both true and necessary in this case for SDL_Timers
 // Weirdly it does not warn about the succeeding function which does the same thing
 Uint32 begin_new_stage(void *userdata, SDL_TimerID timerID, Uint32 interval) {
+    play_sound_effect(AUDIO_STREAM_SAUCER, audio_clips.new_stage);
     const int n = state.score < randi(40000, 60000) ? ++state.prev_ast : state.prev_ast;
     for (int i = 0; i < n; i++) {
         add_new_asteroid(LARGE, (v2){NAN, NAN});
@@ -300,6 +282,7 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     if (--state.lives < 1) {
         start_game_over();
     } else {
+        play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.respawn);
         state.ship.velocity = (v2){0, 0};
         state.ship.position = (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
         state.ship.angle = 0;
@@ -309,16 +292,21 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
 }
 
 void reset_game(void) {
+    reset_state();
     destroy_all_asteroids();
     array_list_free(state.asteroids);
     state.asteroids = array_list_create(sizeof(asteroid));
     global_time.dt = 0.0f;
     SDL_GetCurrentTime(&global_time.now);
     SDL_GetCurrentTime(&global_time.last);
-    state.prev_ast = randi(6, 9);
-    for (int i = 0; i < state.prev_ast; i++) {
-        add_new_asteroid(LARGE, (v2){NAN, NAN});
+
+    const SDL_TimerID id = SDL_AddTimer(0001, begin_new_stage, NULL);
+    if (id == 0) {
+        SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
     }
+}
+
+void reset_state(void) {
     state.ship.position.x = SCREEN_WIDTH / 2.0;
     state.ship.position.y = SCREEN_HEIGHT / 2.0;
     state.ship.velocity.x = 0;
@@ -330,17 +318,19 @@ void reset_game(void) {
     state.render_s_saucer = false;
     state.b_saucer = false;
     state.render_b_saucer = false;
-    state.render_stage_text = false;
+    state.render_stage_text = true;
     state.saucer_spawn_time = randf(20.0f, 35.0f);
     state.w = 0;
     state.a = 0;
     state.d = 0;
+    state.stage = 1;
     state.lives = 3;
     state.score = 0;
-    state.stage = 1;
+    state.prev_ast = randi(4, 6);
 }
 
 void start_game_over(void) {
+    play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.game_over);
     state.state = OVER_MENU;
 }
 
@@ -356,7 +346,7 @@ Uint32 stop_stage_text_render(void *userdata, SDL_TimerID timerID, Uint32 interv
 }
 
 void on_ship_hit(void) {
-    play_sound_effect(state.explode);
+    play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.explode);
     state.dead = true;
     add_ship_death_lines(25.0f);
     add_particles(state.ship.position, randi(30, 40));
@@ -676,6 +666,8 @@ void init_saucer(void) {
 }
 
 void on_saucer_hit(const bool small) {
+    SDL_ClearAudioStream(state.ship_stream);
+    play_sound_effect(AUDIO_STREAM_SHIP, audio_clips.explode);
     if (small) {
         state.score += 1000;
         add_particles(state.small_saucer.pos, 25);
@@ -881,7 +873,8 @@ void highlight_collision(const v2 v) {
 }
 
 void on_asteroid_hit(const asteroid *a, const int i) {
-    play_sound_effect(state.asteroid_hit);
+    SDL_ClearAudioStream(state.asteroid_stream);
+    play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.asteroid_hit);
     const int last_div = state.score / 10000;
     add_particles(a->position, randi(15, 20));
     switch (a->size) {
@@ -997,8 +990,8 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
     if (from_ship) {
         // we are firing it
         projectile_vel = v2_scale(ship_vel, 6.0f);
-        SDL_ClearAudioStream(state.sfx_stream);
-        play_sound_effect(state.fire);
+        SDL_ClearAudioStream(state.fire_stream);
+        play_sound_effect(AUDIO_STREAM_FIRE, audio_clips.fire);
     } else if (from_small_saucer) {
         // the small saucer is firing it, so aim at the player
         v2 direction = {
