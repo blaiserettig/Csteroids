@@ -28,6 +28,8 @@ typedef struct {
     audio_clip booster;
     audio_clip bloop_lo;
     audio_clip bloop_hi;
+    audio_clip button_hover;
+    audio_clip button_select;
 } audio_clips_struct;
 
 typedef enum {

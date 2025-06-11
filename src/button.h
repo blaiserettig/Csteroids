@@ -16,6 +16,7 @@ typedef struct {
     } label_color;
 
     bool pressed;
+    bool play_hover;
     int tag;
     char label[15];
 } button;

@@ -320,6 +320,8 @@ int load_all_audio(void) {
         {"BOOSTER.wav", &audio_clips.booster},
         {"BLOOP_LO.wav", &audio_clips.bloop_lo},
         {"BLOOP_HI.wav", &audio_clips.bloop_hi},
+        {"BUTTON_HOVER.wav", &audio_clips.button_hover},
+        {"BUTTON_SELECT.wav", &audio_clips.button_select}
     };
 
     const int file_count = sizeof(audio_files) / sizeof(audio_files[0]);

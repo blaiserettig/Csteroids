@@ -76,7 +76,8 @@ int main(int argc, char *argv[]) {
                        .pressed = false,
                        .tag = 0,
                        .label = "START",
-                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255}
+                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255},
+                       .play_hover = true
                    });
 
     array_list_add(state.buttons, &(button){
@@ -85,7 +86,8 @@ int main(int argc, char *argv[]) {
                        .pressed = false,
                        .tag = 10,
                        .label = "RESTART",
-                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255}
+                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255},
+                       .play_hover = true
                    });
 
     array_list_add(state.buttons, &(button){
@@ -96,7 +98,8 @@ int main(int argc, char *argv[]) {
                        .pressed = false,
                        .tag = -1,
                        .label = "QUIT",
-                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255}
+                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255},
+                       .play_hover = true
                    });
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
@@ -152,8 +155,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void apply_screen_effects(SDL_Texture* source_texture, SDL_Renderer* renderer) {
-
+void apply_screen_effects(SDL_Texture *source_texture, SDL_Renderer *renderer) {
     // render the original at full opacity
     SDL_RenderTexture(renderer, source_texture, NULL, NULL);
 
@@ -201,7 +203,7 @@ void apply_screen_effects(SDL_Texture* source_texture, SDL_Renderer* renderer) {
     // scanlines
     for (int y = 0; y < SCREEN_HEIGHT; y += 2) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
-        SDL_RenderLine(renderer, 0, (float)y, SCREEN_WIDTH, (float)y);
+        SDL_RenderLine(renderer, 0, (float) y, SCREEN_WIDTH, (float) y);
     }
 }
 
@@ -329,7 +331,7 @@ void update_time(void) {
 // Clion warns that this function always returns 0, which is both true and necessary in this case for SDL_Timers
 // Weirdly it does not warn about the succeeding function which does the same thing
 Uint32 begin_new_stage(void *userdata, SDL_TimerID timerID, Uint32 interval) {
-    play_sound_effect(AUDIO_STREAM_SAUCER, audio_clips.new_stage);
+    play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.new_stage);
     music_start();
     const int n = state.score < randi(40000, 60000) ? ++state.prev_ast : state.prev_ast;
     for (int i = 0; i < n; i++) {
