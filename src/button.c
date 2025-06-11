@@ -36,9 +36,9 @@ bool button_press(SDL_Renderer *r, button *btn) {
     SDL_SetRenderDrawColor(r, btn->btn_color.r, btn->btn_color.g, btn->btn_color.b, btn->btn_color.a);
     SDL_RenderFillRect(r, &btn->draw_rect);
     SDL_SetRenderDrawColor(r, btn->label_color.r, btn->label_color.g, btn->label_color.b, btn->label_color.a);
-    render_text(r, btn->label,
+    render_text_thick(r, btn->label,
                 (v2){btn->draw_rect.x + btn->draw_rect.w / 2.0f, btn->draw_rect.y + btn->draw_rect.h / 2.0f},
-                btn->draw_rect.w * 0.125f);
+                btn->draw_rect.w * 0.125f, 4.0f, btn->draw_rect.w * 0.125f * 1.25f);
     SDL_SetRenderDrawColor(r, 255, 255, 255, 255);
     if (btn->pressed) {
         btn->pressed = false;

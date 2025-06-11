@@ -57,6 +57,7 @@ typedef struct {
     SDL_AudioStream *ship_booster_stream;
     SDL_AudioStream *saucer_stream;
     SDL_AudioStream *music_stream;
+    SDL_Texture* intermediate_texture;
     bool quit;
     bool dead;
     bool spawn;
@@ -95,6 +96,8 @@ extern game_state state;
 
 extern g_time global_time;
 
+void apply_screen_effects(SDL_Texture* source_texture, SDL_Renderer* renderer);
+
 void render_ship();
 
 void handle_input();
@@ -102,6 +105,8 @@ void handle_input();
 void update();
 
 void update_time();
+
+void update_saucer_spawn(void);
 
 int init_audio(void);
 

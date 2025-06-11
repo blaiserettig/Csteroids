@@ -518,3 +518,57 @@ void render_text_3d_extruded(SDL_Renderer *renderer, char c[], v2 pos, const flo
         pos.x += scale;
     }
 }
+
+void draw_line(SDL_Renderer *renderer, const float x1, const float y1, const float x2, const float y2, const float thickness) {
+    if (thickness <= 1.0f) {
+        SDL_RenderLine(renderer, x1, y1, x2, y2);
+        return;
+    }
+
+    const int thick_pixels = (int)(thickness + 0.5f);
+    const int half_thick = thick_pixels / 2;
+
+    for (int dx = -half_thick; dx <= half_thick; dx++) {
+        for (int dy = -half_thick; dy <= half_thick; dy++) {
+            if (dx * dx + dy * dy <= half_thick * half_thick) { // roughly circular
+                SDL_RenderLine(renderer,
+                    x1 + (float)dx, y1 + (float)dy,
+                    x2 + (float)dx, y2 + (float)dy);
+            }
+        }
+    }
+}
+
+void render_text_thick(SDL_Renderer *renderer, char c[], v2 pos, const float scale, const float thickness, const float offset) {
+    const float x_offset = ((float) strlen(c) * offset) / 2.0f;
+    const float y_offset = scale / 2.0f;
+    pos.x -= x_offset;
+    pos.y -= y_offset;
+
+    for (int i = 0; i < strlen(c); i++) {
+        if (isalpha(c[i]) != 0) {
+            const char upper = (char) toupper(c[i]);
+            const int k = upper - 'A';
+            for (int j = 0; j < LETTERS[k].count - 1; j++) {
+                const float x1 = pos.x + LETTERS[k].points[j].x * scale;
+                const float y1 = pos.y + LETTERS[k].points[j].y * scale;
+                const float x2 = pos.x + LETTERS[k].points[j + 1].x * scale;
+                const float y2 = pos.y + LETTERS[k].points[j + 1].y * scale;
+
+                draw_line(renderer, x1, y1, x2, y2, thickness);
+            }
+        } else if (isdigit(c[i]) != 0) {
+            for (int j = 0; j < NUMBERS[c[i] - '0'].count - 1; j++) {
+                const float x1 = pos.x + NUMBERS[c[i] - '0'].points[j].x * scale;
+                const float y1 = pos.y + NUMBERS[c[i] - '0'].points[j].y * scale;
+                const float x2 = pos.x + NUMBERS[c[i] - '0'].points[j + 1].x * scale;
+                const float y2 = pos.y + NUMBERS[c[i] - '0'].points[j + 1].y * scale;
+
+                draw_line(renderer, x1, y1, x2, y2, thickness);
+            }
+        } else if (isspace(c[i]) != 0) {
+
+        }
+        pos.x += offset;
+    }
+}

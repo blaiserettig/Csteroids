@@ -361,7 +361,7 @@ int generate_saucer_loop(audio_clip *clip) {
     for (int i = 0; i < num_samples; i++) {
         const float high_freq = 800.0f;
         const float low_freq = 600.0f;
-        const float amplitude = 150.0f;
+        const float amplitude = 100.0f;
 
         const float t = (float) i / (float) sample_rate;
 

@@ -119,6 +119,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    state.intermediate_texture = SDL_CreateTexture(state.renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,  SCREEN_WIDTH, SCREEN_HEIGHT);
+    if (!state.intermediate_texture) {
+        SDL_Log("SDL_CreateTexture Error: %s", SDL_GetError());
+        cleanup();
+        return 1;
+    }
+
     // Start
     if (init_audio() != 0) {
         cleanup();
@@ -130,10 +137,13 @@ int main(int argc, char *argv[]) {
     }
 
     while (!state.quit) {
+        SDL_SetRenderTarget(state.renderer, state.intermediate_texture);
         SDL_SetRenderDrawColor(state.renderer, 0x00, 0x00, 0x00, 0xFF);
         SDL_RenderClear(state.renderer);
         SDL_SetRenderDrawColor(state.renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         update();
+        SDL_SetRenderTarget(state.renderer, NULL);
+        apply_screen_effects(state.intermediate_texture, state.renderer);
         SDL_RenderPresent(state.renderer);
         SDL_Delay(16);
     }
@@ -142,21 +152,73 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+void apply_screen_effects(SDL_Texture* source_texture, SDL_Renderer* renderer) {
+
+    // render the original at full opacity
+    SDL_RenderTexture(renderer, source_texture, NULL, NULL);
+
+    // and create bloom by rendering multiple blurred copies
+    SDL_SetTextureBlendMode(source_texture, SDL_BLENDMODE_ADD);
+
+    for (int i = 0; i < 4; i++) {
+        // create multiple bloom passes with increasing size and decreasing opacity
+        const Uint8 bloom_alphas[] = {48, 32, 16, 8};
+        const float bloom_offsets[] = {1.0f, 2.0f, 3.0f, 4.0f};
+
+        /*if (state.state == START_MENU) {
+            for (int k =0; k < 4; k++) {
+                bloom_alphas[i] /= 2;
+            }
+        }*/
+
+        SDL_SetTextureAlphaMod(source_texture, bloom_alphas[i]);
+
+        const float offset = bloom_offsets[i];
+
+        //  3x3 pattern around the center
+        const SDL_FRect bloom_positions[] = {
+            {-offset, -offset, SCREEN_WIDTH, SCREEN_HEIGHT},
+            { 0,      -offset, SCREEN_WIDTH, SCREEN_HEIGHT},
+            { offset, -offset, SCREEN_WIDTH, SCREEN_HEIGHT},
+            {-offset,  0,      SCREEN_WIDTH, SCREEN_HEIGHT},
+            { offset,  0,      SCREEN_WIDTH, SCREEN_HEIGHT},
+            {-offset,  offset, SCREEN_WIDTH, SCREEN_HEIGHT},
+            { 0,       offset, SCREEN_WIDTH, SCREEN_HEIGHT},
+            { offset,  offset, SCREEN_WIDTH, SCREEN_HEIGHT}
+        };
+
+        for (int j = 0; j < 8; j++) {
+            SDL_RenderTexture(renderer, source_texture, NULL, &bloom_positions[j]);
+        }
+    }
+
+    SDL_SetTextureBlendMode(source_texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureAlphaMod(source_texture, 255);
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // scanlines
+    for (int y = 0; y < SCREEN_HEIGHT; y += 2) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
+        SDL_RenderLine(renderer, 0, (float)y, SCREEN_WIDTH, (float)y);
+    }
+}
+
 void update(void) {
     update_time();
 
     handle_input();
 
+    update_hyperspace();
+    render_hyperspace();
+
     if (state.state == START_MENU) {
-        update_hyperspace();
-        render_hyperspace();
         render_text_3d_extruded(state.renderer, "CSTEROIDS", (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 100.0f},
                                 35.0f);
     }
 
     if (state.state == GAME_VIEW) {
-        update_hyperspace();
-        render_hyperspace();
         music_update();
     }
 
@@ -199,19 +261,7 @@ void update(void) {
 
     if (state.state == START_MENU) return;
 
-    if (!state.s_saucer && !state.b_saucer) state.saucer_spawn_time -= (float) global_time.dt;
-    if (state.saucer_spawn_time < 0.0f && !state.s_saucer && !state.b_saucer) {
-        init_saucer();
-        play_saucer_sound();
-        if (state.score >= 40000) {
-            state.s_saucer = true;
-        } else {
-            const float f = randf(0.0f, 1.0f);
-            if (f < 0.5f) state.s_saucer = true;
-            else state.b_saucer = true;
-        }
-        state.saucer_spawn_time = randf(35.0f, 45.0f);
-    }
+    update_saucer_spawn();
 
     if (!state.dead) update_ship();
     update_asteroids();
@@ -246,11 +296,27 @@ void update(void) {
     render_score();
     if (state.s_saucer) render_saucer(state.small_saucer.pos, 1.25f);
     if (state.b_saucer) render_saucer(state.big_saucer.pos, 1.75f);
-    if (state.s_saucer || state.b_saucer) keep_saucer_sound_playing();
+    if ((state.s_saucer || state.b_saucer) && state.state != OVER_MENU) keep_saucer_sound_playing();
 
     if (state.dead) render_spacecraft_explosion(false, false);
     if (state.render_s_saucer) render_spacecraft_explosion(true, true);
     if (state.render_b_saucer) render_spacecraft_explosion(true, false);
+}
+
+void update_saucer_spawn(void) {
+    if (!state.s_saucer && !state.b_saucer) state.saucer_spawn_time -= (float) global_time.dt;
+    if (state.saucer_spawn_time < 0.0f && !state.s_saucer && !state.b_saucer && !state.dead) {
+        init_saucer();
+        play_saucer_sound();
+        if (state.score >= 40000) {
+            state.s_saucer = true;
+        } else {
+            const float f = randf(0.0f, 1.0f);
+            if (f < 0.5f) state.s_saucer = true;
+            else state.b_saucer = true;
+        }
+        state.saucer_spawn_time = randf(35.0f, 45.0f);
+    }
 }
 
 void update_time(void) {
@@ -727,7 +793,7 @@ void update_hyperspace(void) {
 }
 
 void render_hyperspace(void) {
-    if (state.state == GAME_VIEW) {
+    if (state.state == GAME_VIEW || state.state == OVER_MENU) {
         SDL_SetRenderDrawColor(state.renderer, 16, 16, 16, 255);
     } else {
         SDL_SetRenderDrawColor(state.renderer, 64, 64, 64, 255);
@@ -1066,6 +1132,7 @@ void cleanup(void) {
     array_list_free(state.projectiles);
     array_list_free(state.asteroid_particles);
     array_list_free(state.buttons);
+    SDL_DestroyTexture(state.intermediate_texture);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
 }

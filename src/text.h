@@ -19,4 +19,6 @@ void render_text_3d(SDL_Renderer *renderer, char c[], v2 pos, float scale);
 
 void render_text_3d_extruded(SDL_Renderer *renderer, char c[], v2 pos, float scale);
 
+void render_text_thick(SDL_Renderer *renderer, char c[], v2 pos, float scale, float thickness, float offset);
+
 #endif //TEXT_H
