@@ -19,7 +19,9 @@ typedef struct {
     audio_clip fire;
     audio_clip explode;
     audio_clip saucer;
-    audio_clip asteroid_hit;
+    audio_clip small_asteroid_hit;
+    audio_clip medium_asteroid_hit;
+    audio_clip big_asteroid_hit;
     audio_clip respawn;
     audio_clip game_over;
     audio_clip new_stage;

@@ -760,12 +760,12 @@ void projectile_collision_check(void) {
 
         // Projectile vs. saucer collision
         if (state.s_saucer) {
-            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 225 && p->ttl < 1.35f) {
+            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 235 && p->ttl < 1.35f) {
                 on_saucer_hit(true);
             }
         }
         if (state.b_saucer) {
-            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 250 && p->ttl < 1.35f) {
+            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 260 && p->ttl < 1.35f) {
                 on_saucer_hit(false);
             }
         }
@@ -883,25 +883,27 @@ void highlight_collision(const v2 v) {
 
 void on_asteroid_hit(const asteroid *a, const int i) {
     SDL_ClearAudioStream(state.asteroid_stream);
-    play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.asteroid_hit);
     const int last_div = state.score / 10000;
     add_particles(a->position, randi(15, 20));
     switch (a->size) {
         case SMALL:
             state.score += 100;
             array_list_remove(state.asteroids, i);
+            play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.small_asteroid_hit);
             break;
         case MEDIUM:
             state.score += 50;
             add_new_asteroid(SMALL, a->position);
             add_new_asteroid(SMALL, a->position);
             array_list_remove(state.asteroids, i);
+            play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.medium_asteroid_hit);
             break;
         case LARGE:
             state.score += 20;
             add_new_asteroid(MEDIUM, a->position);
             add_new_asteroid(MEDIUM, a->position);
             array_list_remove(state.asteroids, i);
+            play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.big_asteroid_hit);
             break;
     }
     if (state.score / 10000 != last_div) {
@@ -1015,7 +1017,7 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
         }
 
         const float accuracy_factor = fminf((float) state.score / 40000.0f, 1.0f);
-        const float max_angle_deviation = (1.0f - accuracy_factor) * (float) M_PI_4 * 0.75f;
+        const float max_angle_deviation = (1.0f - accuracy_factor) * (float) M_PI_4;
 
         const float angle_deviation = randf(-max_angle_deviation, max_angle_deviation);
 

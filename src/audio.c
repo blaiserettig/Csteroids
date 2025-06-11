@@ -310,7 +310,9 @@ int load_audio_files(const audio_file_entry *files, const int count) {
 int load_all_audio(void) {
     const audio_file_entry audio_files[] = {
         {"FIRE.wav", &audio_clips.fire},
-        {"ASTEROID_HIT.wav", &audio_clips.asteroid_hit},
+        {"SMALL_ASTEROID_HIT.wav", &audio_clips.small_asteroid_hit},
+        {"MEDIUM_ASTEROID_HIT.wav", &audio_clips.medium_asteroid_hit},
+        {"BIG_ASTEROID_HIT.wav", &audio_clips.big_asteroid_hit},
         {"EXPLODE.wav", &audio_clips.explode},
         {"RESPAWN.wav", &audio_clips.respawn},
         {"GAME_OVER.wav", &audio_clips.game_over},
@@ -359,7 +361,7 @@ int generate_saucer_loop(audio_clip *clip) {
     for (int i = 0; i < num_samples; i++) {
         const float high_freq = 800.0f;
         const float low_freq = 600.0f;
-        const float amplitude = 500.0f;
+        const float amplitude = 150.0f;
 
         const float t = (float) i / (float) sample_rate;
 
@@ -446,8 +448,8 @@ typedef struct {
 
 static background_music_state_t bg_music = {0};
 
-static const float INITIAL_INTERVAL = 1.25f;
-static const float FINAL_INTERVAL = 0.25f;
+static const float INITIAL_INTERVAL = 1.0f;
+static const float FINAL_INTERVAL = 0.35f;
 static const float RAMP_DURATION = 30.0f;
 
 void music_start(void) {
