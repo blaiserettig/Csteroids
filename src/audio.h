@@ -30,6 +30,8 @@ typedef struct {
     audio_clip bloop_hi;
     audio_clip button_hover;
     audio_clip button_select;
+    audio_clip armor_hit;
+    audio_clip lucky;
 } audio_clips_struct;
 
 typedef enum {
@@ -39,6 +41,7 @@ typedef enum {
     AUDIO_STREAM_SHIP_BOOSTER,
     AUDIO_STREAM_SAUCER,
     AUDIO_STREAM_MUSIC,
+    AUDIO_STREAM_SFX,
     AUDIO_STREAM_COUNT
 } audio_stream_type;
 

@@ -107,7 +107,8 @@ int init_audio(void) {
         {&state.ship_fire_stream, "ship"},
         {&state.saucer_stream, "saucer"},
         {&state.ship_booster_stream, "booster"},
-        {&state.music_stream, "music"}
+        {&state.music_stream, "music"},
+        {&state.sfx_stream, "sfx"}
     };
 
     const int num_streams = sizeof(streams) / sizeof(streams[0]);
@@ -167,6 +168,10 @@ void play_sound_effect(const audio_stream_type stream_type, const audio_clip cli
         case AUDIO_STREAM_MUSIC:
             stream = state.music_stream;
             stream_name = "music";
+            break;
+        case AUDIO_STREAM_SFX:
+            stream = state.sfx_stream;
+            stream_name = "sfx";
             break;
         default:
             SDL_Log("Invalid audio stream type: %d", stream_type);
@@ -321,7 +326,9 @@ int load_all_audio(void) {
         {"BLOOP_LO.wav", &audio_clips.bloop_lo},
         {"BLOOP_HI.wav", &audio_clips.bloop_hi},
         {"BUTTON_HOVER.wav", &audio_clips.button_hover},
-        {"BUTTON_SELECT.wav", &audio_clips.button_select}
+        {"BUTTON_SELECT.wav", &audio_clips.button_select},
+        {"ARMOR_HIT.wav", &audio_clips.armor_hit},
+        {"LUCKY.wav", &audio_clips.lucky},
     };
 
     const int file_count = sizeof(audio_files) / sizeof(audio_files[0]);

@@ -6,6 +6,9 @@
 #include "audio.h"
 #include "util/array_list.h"
 
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
+
 typedef struct {
     v2 position;
     v2 velocity;
@@ -57,6 +60,7 @@ typedef struct {
     SDL_AudioStream *ship_booster_stream;
     SDL_AudioStream *saucer_stream;
     SDL_AudioStream *music_stream;
+    SDL_AudioStream *sfx_stream;
     SDL_Texture* intermediate_texture;
     bool quit;
     bool dead;
@@ -90,6 +94,12 @@ typedef struct {
         GAME_VIEW,
         OVER_MENU,
     } state;
+
+    float player_static_timer;
+    float player_invincible_timer;
+    bool draw_lucky;
+    bool draw_lucky_timer;
+    char luck_text[32];
 } game_state;
 
 extern game_state state;
@@ -122,6 +132,8 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval);
 
 Uint32 stop_saucer_exp_render(void *userdata, SDL_TimerID timerID, Uint32 interval);
 
+Uint32 stop_luck_text_render(void *userdata, SDL_TimerID timerID, Uint32 interval);
+
 char* get_asset_path(const char* filename);
 
 void reset_game(void);
@@ -142,8 +154,6 @@ Uint32 stop_stage_text_render(void *userdata, SDL_TimerID timerID, Uint32 interv
 
 void update_asteroid_explosion_particles();
 
-void update_asteroids(void);
-
 void update_projectiles(void);
 
 int ship_collision_check(void);
@@ -153,10 +163,6 @@ void projectile_collision_check(void);
 void highlight_collision(v2 v);
 
 void apply_friction(float *v, float amount);
-
-void render_asteroids(void);
-
-void render_asteroids_helper(v2 pos, const v2 *points, int p_count);
 
 void render_booster(void);
 
@@ -176,8 +182,6 @@ void render_hyperspace(void);
 
 void init_hyperspace(void);
 
-void render_asteroid_explosion_particles();
-
 void render_spacecraft_explosion(bool saucer, bool small);
 
 v2 *render_angle_helper(const v2 *points, int n, float angle);
@@ -187,10 +191,6 @@ void generate_small_asteroid(void);
 void generate_medium_asteroid(void);
 
 void generate_large_asteroid(void);
-
-void on_asteroid_hit(const asteroid *a, int i);
-
-void add_new_asteroid(AsteroidSize size, v2 pos);
 
 void add_ship_death_lines(float scale);
 

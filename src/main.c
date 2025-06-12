@@ -21,9 +21,6 @@
 #include "text.h"
 #include "audio.h"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-
 #define THRUST 0.3
 #define M_TAU (M_PI * 2)
 #define MAX_SFX_STREAMS 8
@@ -265,7 +262,16 @@ void update(void) {
 
     update_saucer_spawn();
 
-    if (!state.dead) update_ship();
+    const bool update_player = state.player_static_timer > 0.0f;
+    if (update_player) {
+        state.player_static_timer -= (float)global_time.dt;
+    }
+
+    if (state.player_invincible_timer > 0.0f) {
+        state.player_invincible_timer -= (float)global_time.dt;
+    }
+
+    if (!state.dead && !update_player) update_ship();
     update_asteroids();
     update_projectiles();
     update_asteroid_explosion_particles();
@@ -273,7 +279,7 @@ void update(void) {
         update_saucer();
     }
 
-    if (ship_collision_check() > 0) {
+    if (ship_collision_check() > 0 && state.player_invincible_timer < 0.05f) {
         on_ship_hit();
     }
 
@@ -303,6 +309,16 @@ void update(void) {
     if (state.dead) render_spacecraft_explosion(false, false);
     if (state.render_s_saucer) render_spacecraft_explosion(true, true);
     if (state.render_b_saucer) render_spacecraft_explosion(true, false);
+
+    if (state.draw_lucky) {
+        render_text_thick(state.renderer, state.luck_text, (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 75.0f}, 25.0f, 2.0f, 25.0f);
+        if (state.draw_lucky_timer) return;
+        state.draw_lucky_timer = true;
+        const SDL_TimerID id = SDL_AddTimer(1000, stop_luck_text_render, NULL);
+        if (id == 0) {
+            SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+        }
+    }
 }
 
 void update_saucer_spawn(void) {
@@ -396,6 +412,8 @@ void reset_state(void) {
     state.lives = 3;
     state.score = 0;
     state.prev_ast = randi(4, 6);
+    state.draw_lucky = false;
+    state.draw_lucky_timer = false;
 }
 
 void start_game_over(void) {
@@ -411,6 +429,12 @@ void render_stage_text(void) {
 
 Uint32 stop_stage_text_render(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     state.render_stage_text = false;
+    return 0;
+}
+
+Uint32 stop_luck_text_render(void *userdata, SDL_TimerID timerID, Uint32 interval) {
+    state.draw_lucky = false;
+    state.draw_lucky_timer = false;
     return 0;
 }
 
@@ -489,14 +513,6 @@ void update_ship(void) {
 
     state.ship.velocity.x = clampf(state.ship.velocity.x, -10, 10);
     state.ship.velocity.y = clampf(state.ship.velocity.y, -10, 10);
-}
-
-void update_asteroids(void) {
-    for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
-        asteroid *a = array_list_get(state.asteroids, i);
-        a->position.x = wrap0f(a->position.x += a->velocity.x, SCREEN_WIDTH);
-        a->position.y = wrap0f(a->position.y += a->velocity.y, SCREEN_HEIGHT);
-    }
 }
 
 void update_projectiles(void) {
@@ -600,15 +616,6 @@ void render_spacecraft_explosion(const bool saucer, const bool small) {
     }
 }
 
-void render_asteroid_explosion_particles(void) {
-    SDL_SetRenderDrawColor(state.renderer, 128, 128, 128, 255);
-    for (size_t i = 0; i < array_list_size(state.asteroid_particles); i++) {
-        const death_line *d = array_list_get(state.asteroid_particles, i);
-        SDL_RenderLine(state.renderer, d->pos.x + d->p1.x, d->pos.y + d->p1.y, d->pos.x + d->p2.x, d->pos.y + d->p2.y);
-    }
-    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
-}
-
 void render_ship(void) {
     v2 *new_points = render_angle_helper(ship_points, 6, state.ship.angle);
 
@@ -641,20 +648,6 @@ void render_score(void) {
     render_text(state.renderer, buffer, (v2){55.0f, 20.0f}, 20.0f);
 }
 
-void render_asteroids(void) {
-    for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
-        const asteroid *a = array_list_get(state.asteroids, i);
-        SDL_SetRenderDrawColor(state.renderer, a->color, a->color, a->color, 255);
-        for (int j = 0; j < a->point_count; j++) {
-            const int next = (j + 1) % a->point_count;
-            SDL_RenderLine(state.renderer,
-                           a->position.x + a->points[j].x, a->position.y + a->points[j].y,
-                           a->position.x + a->points[next].x, a->position.y + a->points[next].y);
-        }
-    }
-    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
-}
-
 void render_booster(void) {
     const v2 booster_points[] = {
         {-2, -7},
@@ -666,11 +659,15 @@ void render_booster(void) {
 
     const v2 pos = state.ship.position;
 
+    //SDL_SetRenderDrawColor(state.renderer, 112, 73, 0, 255);
+
     SDL_RenderLine(state.renderer, pos.x + new_points[0].x, pos.y + new_points[0].y,
                    pos.x + new_points[1].x, pos.y + new_points[1].y);
 
     SDL_RenderLine(state.renderer, pos.x + new_points[1].x, pos.y + new_points[1].y,
                    pos.x + new_points[2].x, pos.y + new_points[2].y);
+
+    //SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 
     free(new_points);
 }
@@ -822,7 +819,7 @@ void projectile_collision_check(void) {
         const projectile *p = array_list_get(state.projectiles, i);
 
         //Projectile vs. ship collision
-        if (v2_dist_sqr(p->pos, state.ship.position) < 150 && p->ttl < 1.25f && !state.dead) {
+        if (v2_dist_sqr(p->pos, state.ship.position) < 150 && p->ttl < 1.25f && !state.dead && state.player_invincible_timer <= 0.05f) {
             on_ship_hit();
         }
 
@@ -947,64 +944,6 @@ void highlight_collision(const v2 v) {
     }
 
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
-}
-
-void on_asteroid_hit(const asteroid *a, const int i) {
-    SDL_ClearAudioStream(state.asteroid_stream);
-    const int last_div = state.score / 10000;
-    add_particles(a->position, randi(15, 20));
-    switch (a->size) {
-        case SMALL:
-            state.score += 100;
-            array_list_remove(state.asteroids, i);
-            play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.small_asteroid_hit);
-            break;
-        case MEDIUM:
-            state.score += 50;
-            add_new_asteroid(SMALL, a->position);
-            add_new_asteroid(SMALL, a->position);
-            array_list_remove(state.asteroids, i);
-            play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.medium_asteroid_hit);
-            break;
-        case LARGE:
-            state.score += 20;
-            add_new_asteroid(MEDIUM, a->position);
-            add_new_asteroid(MEDIUM, a->position);
-            array_list_remove(state.asteroids, i);
-            play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.big_asteroid_hit);
-            break;
-    }
-    if (state.score / 10000 != last_div) {
-        state.lives++;
-    }
-}
-
-void add_new_asteroid(const AsteroidSize size, v2 pos) {
-    const int n = randi(12, 18);
-    // ReSharper disable once CppDFAMemoryLeak
-    // Clion says there's a memory leak here, but all points arrays are freed on application exit
-    v2 *points = malloc((size_t) n * sizeof(v2));
-
-    for (int i = 0; i < n; i++) {
-        float radius = 0.3f + 0.2f * randf(0.0f, 1.0f);
-        if (randf(0.0f, 1.0f) < 0.2f) radius -= 0.2f;
-        const float angle = (float) i * ((float) M_TAU / (float) n) + (float) M_PI * 0.125f * randf(0.0f, 1.0f);
-
-        points[i] = v2_scale(v2_scale((v2){cosf(angle), sinf(angle)}, radius), get_asteroid_scale(size));
-    }
-
-    const float angle = M_TAU * randf(0.0f, 1.0f);
-
-    array_list_add(state.asteroids, &(asteroid){
-                       .position = !isnan(pos.x) ? pos : (v2){randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
-                       .velocity = v2_scale((v2){cosf(angle), sinf(angle)}, get_asteroid_velocity_scale(size)),
-                       .angle = 0,
-                       .scale = get_asteroid_scale(size),
-                       .size = size,
-                       .points = points,
-                       .point_count = n,
-                       .color = randi(128, 255)
-                   });
 }
 
 void add_ship_death_lines(const float scale) {
