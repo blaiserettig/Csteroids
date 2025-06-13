@@ -1,5 +1,10 @@
 //gcc -I./include src/main.c -o main.exe -L./lib -lSDL3 
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_init.h"
@@ -53,6 +58,7 @@ v2 saucer_points[] = {
     {-6, -3}
 };
 
+// Robert Jenkins' 96 bit Mix Function
 unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
 {
     a=a-b;  a=a-c;  a=a^(c >> 13);
@@ -65,6 +71,20 @@ unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
     b=b-c;  b=b-a;  b=b^(a << 10);
     c=c-a;  c=c-b;  c=c^(b >> 15);
     return c;
+}
+
+void main_loop(void) {
+    SDL_SetRenderTarget(state.renderer, state.intermediate_texture);
+    SDL_SetRenderDrawColor(state.renderer, 0x00, 0x00, 0x00, 0xFF);
+    SDL_RenderClear(state.renderer);
+    SDL_SetRenderDrawColor(state.renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+    update();
+    SDL_SetRenderTarget(state.renderer, NULL);
+    apply_screen_effects(state.intermediate_texture, state.renderer);
+    SDL_RenderPresent(state.renderer);
+    #ifndef __EMSCRIPTEN__
+    SDL_Delay(16);
+    #endif
 }
 
 int main(int argc, char *argv[]) {
@@ -151,17 +171,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    #ifdef  __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, 1);
+    #else
+
     while (!state.quit) {
-        SDL_SetRenderTarget(state.renderer, state.intermediate_texture);
-        SDL_SetRenderDrawColor(state.renderer, 0x00, 0x00, 0x00, 0xFF);
-        SDL_RenderClear(state.renderer);
-        SDL_SetRenderDrawColor(state.renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-        update();
-        SDL_SetRenderTarget(state.renderer, NULL);
-        apply_screen_effects(state.intermediate_texture, state.renderer);
-        SDL_RenderPresent(state.renderer);
-        SDL_Delay(16);
+        main_loop();
     }
+    #endif
 
     cleanup();
     return 0;

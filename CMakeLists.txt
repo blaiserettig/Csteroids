@@ -6,11 +6,11 @@ set(CMAKE_C_STANDARD 99)
 
 # Add your source files here
 add_executable(main src/main.c
-        include/util/v2.h
-        include/util/math_ext.h
+        src/util/v2.h
+        src/util/math_ext.h
         src/asteroid.h
-        include/util/array_list.h
-        include/util/array_list.c
+        src/util/array_list.h
+        src/util/array_list.c
         src/asteroid.c
         src/text.c
         src/text.h
