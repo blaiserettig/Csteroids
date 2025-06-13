@@ -40,6 +40,8 @@ typedef struct {
     bool is_phased;
     float phase_timer;
     float phase_cooldown;
+    Uint32 destruction_time;  // 0 = not scheduled for destruction, >0 = SDL_GetTicks() when to destroy
+    bool marked_for_chain_destruction;
 } asteroid;
 
 float get_asteroid_scale(asteroid_size size);

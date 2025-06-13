@@ -351,7 +351,6 @@ void add_new_asteroid_typed(const asteroid_size size, v2 pos, const asteroid_typ
         default:
             break;
     }
-
     array_list_add(state.asteroids, &(asteroid){
                        .position = !isnan(pos.x) ? pos : (v2){randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)},
                        .velocity = v2_scale((v2){cosf(angle), sinf(angle)}, get_asteroid_velocity_scale(size)),
@@ -365,8 +364,11 @@ void add_new_asteroid_typed(const asteroid_size size, v2 pos, const asteroid_typ
                        .armor_hits = armor_hits,
                        .is_phased = is_phased,
                        .phase_timer = phase_timer,
-                       .phase_cooldown = phase_cooldown
+                       .phase_cooldown = phase_cooldown,
+                       .destruction_time = 0,
+                       .marked_for_chain_destruction = false
                    });
+
 }
 
 bool can_hit_asteroid(const asteroid *a) {
@@ -490,13 +492,18 @@ void handle_lucky_bonus(void) {
 
 void trigger_chain_reaction(const v2 explosion_pos, const float radius) {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
-        const asteroid *a = array_list_get(state.asteroids, i);
+        asteroid *a = array_list_get(state.asteroids, i);
+
+        if (a->destruction_time > 0 || a->marked_for_chain_destruction) {
+            continue;
+        }
+
         const float distance = sqrtf(powf(a->position.x - explosion_pos.x, 2.0f) +
                                      powf(a->position.y - explosion_pos.y, 2.0f));
 
         if (distance <= radius) {
-            on_asteroid_hit(a, (int) i);
-            i--;
+            a->destruction_time = SDL_GetTicks() + randi(250, 500);
+            a->marked_for_chain_destruction = true;
         }
     }
 }

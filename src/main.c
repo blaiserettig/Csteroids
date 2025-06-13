@@ -277,6 +277,7 @@ void update(void) {
 
     if (!state.dead && !update_player) update_ship();
     update_asteroids();
+    update_asteroid_destruction_timers();
     update_projectiles();
     update_asteroid_explosion_particles();
     if (state.s_saucer || state.b_saucer) {
@@ -345,6 +346,18 @@ void update_time(void) {
     SDL_GetCurrentTime(&global_time.now);
     global_time.dt = ((double) global_time.now - (double) global_time.last) / 1e9;
     global_time.last = global_time.now;
+}
+
+void update_asteroid_destruction_timers() {
+    const Uint32 current_time = SDL_GetTicks();
+
+    for (int i = (int)array_list_size(state.asteroids) - 1; i >= 0; i--) {
+        const asteroid *a = array_list_get(state.asteroids, i);
+
+        if (a->destruction_time > 0 && current_time >= a->destruction_time) {
+            on_asteroid_hit(a, i);
+        }
+    }
 }
 
 // ReSharper disable once CppDFAConstantFunctionResult
@@ -677,7 +690,7 @@ void render_score(void) {
     const int length = snprintf(NULL, 0, "%d", state.score);
     char buffer[length + 1];
     snprintf(buffer, length + 1, "%d", state.score);
-    render_text(state.renderer, buffer, (v2){55.0f, 20.0f}, 20.0f);
+    render_text(state.renderer, buffer, (v2){62.0f, 20.0f}, 20.0f);
 }
 
 void render_booster(void) {

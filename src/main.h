@@ -141,6 +141,8 @@ char* get_asset_path(const char* filename);
 
 void reset_game(void);
 
+void update_asteroid_destruction_timers();
+
 void start_game_over(void);
 
 void render_static(float center_x, float center_y, float scale, Uint8 r, Uint8 g, Uint8 b);
