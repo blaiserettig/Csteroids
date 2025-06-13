@@ -73,6 +73,7 @@ typedef struct {
     bool b_saucer;
     bool render_b_saucer;
     bool render_stage_text;
+    bool should_spawn_next_stage;
     ship ship;
     ArrayList *asteroids;
     ArrayList *projectiles;
@@ -96,6 +97,7 @@ typedef struct {
         START_MENU,
         GAME_VIEW,
         OVER_MENU,
+        SHOP_MENU,
     } state;
 
     float player_static_timer;

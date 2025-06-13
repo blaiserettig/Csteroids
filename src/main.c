@@ -53,9 +53,24 @@ v2 saucer_points[] = {
     {-6, -3}
 };
 
+unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
+{
+    a=a-b;  a=a-c;  a=a^(c >> 13);
+    b=b-c;  b=b-a;  b=b^(a << 8);
+    c=c-a;  c=c-b;  c=c^(b >> 13);
+    a=a-b;  a=a-c;  a=a^(c >> 12);
+    b=b-c;  b=b-a;  b=b^(a << 16);
+    c=c-a;  c=c-b;  c=c^(b >> 5);
+    a=a-b;  a=a-c;  a=a^(c >> 3);
+    b=b-c;  b=b-a;  b=b^(a << 10);
+    c=c-a;  c=c-b;  c=c^(b >> 15);
+    return c;
+}
+
 int main(int argc, char *argv[]) {
 
-    srand((unsigned int) time(NULL));
+    const unsigned long seed = mix(time(NULL), SDL_GetTicks(), clock());
+    srand(seed);
 
     reset_state();
     state.state = START_MENU;
@@ -219,6 +234,14 @@ void update(void) {
 
     if (state.state == GAME_VIEW) {
         music_update();
+        if (state.should_spawn_next_stage) {
+            state.should_spawn_next_stage = false;
+
+            const int n = state.score < randi(40000, 60000) ? ++state.prev_ast : state.prev_ast;
+            for (int i = 0; i < n; i++) {
+                add_new_asteroid(LARGE, (v2){NAN, NAN});
+            }
+        }
     }
 
     if (state.state == OVER_MENU) {
@@ -366,10 +389,8 @@ void update_asteroid_destruction_timers() {
 Uint32 begin_new_stage(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.new_stage);
     music_start();
-    const int n = state.score < randi(40000, 60000) ? ++state.prev_ast : state.prev_ast;
-    for (int i = 0; i < n; i++) {
-        add_new_asteroid(LARGE, (v2){NAN, NAN});
-    }
+
+    state.should_spawn_next_stage = true;
     state.spawn = false;
     state.render_stage_text = true;
     const SDL_TimerID id = SDL_AddTimer(3000, stop_stage_text_render, NULL);
@@ -887,7 +908,8 @@ void projectile_collision_check(void) {
             const float check_distance = get_asteroid_check_distance(a->size);
 
             if (v2_dist_sqr(p->pos, a->position) < check_distance) {
-                highlight_collision(p->pos);
+                //highlight_collision(p->pos);
+                if (a->is_phased) continue;
                 array_list_remove(state.projectiles, i);
                 on_asteroid_hit(a, j);
             }
@@ -922,7 +944,9 @@ int ship_collision_check(void) {
 
                 if (isnan(res.x) || isnan(res.y)) continue;
 
-                highlight_collision(res);
+                if (a->is_phased) continue;
+
+                //highlight_collision(res);
                 free(points);
                 on_asteroid_hit(a, j);
                 return 1;
@@ -944,7 +968,7 @@ int ship_collision_check(void) {
 
                 if (isnan(res.x) || isnan(res.y)) continue;
 
-                highlight_collision(res);
+                //highlight_collision(res);
                 free(points);
                 on_saucer_hit(true);
                 return 1;
@@ -965,7 +989,7 @@ int ship_collision_check(void) {
 
                 if (isnan(res.x) || isnan(res.y)) continue;
 
-                highlight_collision(res);
+                //highlight_collision(res);
                 free(points);
                 on_saucer_hit(false);
                 return 1;
