@@ -77,8 +77,8 @@ void update_asteroids(void) {
             }
         }
 
-        a->position.x = wrap0f(a->position.x += a->velocity.x, SCREEN_WIDTH);
-        a->position.y = wrap0f(a->position.y += a->velocity.y, SCREEN_HEIGHT);
+        a->position.x = wrap0f(a->position.x += a->velocity.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
+        a->position.y = wrap0f(a->position.y += a->velocity.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
     }
 }
 

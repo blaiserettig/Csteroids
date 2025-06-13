@@ -335,8 +335,6 @@ int load_all_audio(void) {
     return load_audio_files(audio_files, file_count);
 }
 
-
-// Global state for saucer sound
 static audio_clip saucer_loop_clip = {0};
 static bool saucer_sound_initialized = false;
 
@@ -347,9 +345,8 @@ int generate_saucer_loop(audio_clip *clip) {
         .freq = 44100
     };
 
-    // Create a seamless loop - duration should be a multiple of the warble period
     const float warble_rate = 4.0f;
-    const float loop_duration = 1.0f / warble_rate; // One complete warble cycle
+    const float loop_duration = 1.0f / warble_rate;
     const int sample_rate = target_spec.freq;
     const int num_samples = (int) (loop_duration * (float) sample_rate);
     const int bytes_per_sample = 2 * target_spec.channels;

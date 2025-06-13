@@ -236,6 +236,18 @@ void apply_screen_effects(SDL_Texture *source_texture, SDL_Renderer *renderer) {
     }
 }
 
+void enter_pause_menu(void) {
+    SDL_Log("ENTER");
+}
+
+void render_pause_menu(void) {
+
+}
+
+void exit_pause_menu(void) {
+    SDL_Log("EXIT");
+}
+
 void update(void) {
     update_time();
 
@@ -315,7 +327,7 @@ void update(void) {
         state.player_invincible_timer -= (float)global_time.dt;
     }
 
-    if (!state.dead && !update_player) update_ship();
+    if (!state.dead && !update_player && !global_time.is_paused) update_ship();
     update_asteroids();
     update_asteroid_destruction_timers();
     update_projectiles();
@@ -341,6 +353,19 @@ void update(void) {
 
     if (state.render_stage_text) render_stage_text();
 
+    if (state.pause_state_change) {
+        if (global_time.is_paused) {
+            unpause_game();
+        } else {
+            pause_game();
+        }
+        state.pause_state_change = false;
+    }
+
+    if (global_time.is_paused) {
+        render_pause_menu();
+    }
+
     if (!state.dead) render_ship();
     render_asteroids();
     render_projectiles();
@@ -349,7 +374,7 @@ void update(void) {
     render_score();
     if (state.s_saucer) render_saucer(state.small_saucer.pos, 1.25f);
     if (state.b_saucer) render_saucer(state.big_saucer.pos, 1.75f);
-    if ((state.s_saucer || state.b_saucer) && state.state != OVER_MENU) keep_saucer_sound_playing();
+    if ((state.s_saucer || state.b_saucer) && state.state != OVER_MENU && !global_time.is_paused) keep_saucer_sound_playing();
 
     if (state.dead) render_spacecraft_explosion(false, false);
     if (state.render_s_saucer) render_spacecraft_explosion(true, true);
@@ -384,8 +409,29 @@ void update_saucer_spawn(void) {
 
 void update_time(void) {
     SDL_GetCurrentTime(&global_time.now);
-    global_time.dt = ((double) global_time.now - (double) global_time.last) / 1e9;
+    if (global_time.is_paused) {
+        global_time.dt = 0.0;
+    } else {
+        global_time.dt = ((double) global_time.now - (double) global_time.last) / 1e9;
+        global_time.dt * (double)global_time.scale;
+    }
     global_time.last = global_time.now;
+}
+
+void pause_game(void) {
+    if (!global_time.is_paused) {
+        global_time.pre_pause_scale = global_time.scale;
+        global_time.is_paused = true;
+        enter_pause_menu();
+    }
+}
+
+void unpause_game(void) {
+    if (global_time.is_paused) {
+        global_time.scale = global_time.pre_pause_scale;
+        global_time.is_paused = false;
+        exit_pause_menu();
+    }
 }
 
 void update_asteroid_destruction_timers() {
@@ -459,7 +505,7 @@ void reset_state(void) {
     state.b_saucer = false;
     state.render_b_saucer = false;
     state.render_stage_text = true;
-    state.saucer_spawn_time = randf(35.0f, 45.0f);
+    state.saucer_spawn_time = randf(35.0f, 55.0f);
     state.w = 0;
     state.a = 0;
     state.d = 0;
@@ -469,6 +515,7 @@ void reset_state(void) {
     state.prev_ast = randi(4, 6);
     state.draw_lucky = false;
     state.draw_lucky_timer = false;
+    state.pause_state_change = false;
 }
 
 void start_game_over(void) {
@@ -506,8 +553,8 @@ void on_ship_hit(void) {
 }
 
 void update_saucer(void) {
-    state.small_saucer.pos.x = wrap0f(state.small_saucer.pos.x + state.small_saucer.vel.x, SCREEN_WIDTH);
-    state.small_saucer.pos.y = wrap0f(state.small_saucer.pos.y + state.small_saucer.vel.y, SCREEN_HEIGHT);
+    state.small_saucer.pos.x = wrap0f(state.small_saucer.pos.x + state.small_saucer.vel.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
+    state.small_saucer.pos.y = wrap0f(state.small_saucer.pos.y + state.small_saucer.vel.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
     if (state.s_saucer) {
         static float shoot_time = 0.0f;
         shoot_time += (float) global_time.dt;
@@ -524,8 +571,8 @@ void update_saucer(void) {
         }
     }
 
-    state.big_saucer.pos.x = wrap0f(state.big_saucer.pos.x + state.big_saucer.vel.x, SCREEN_WIDTH);
-    state.big_saucer.pos.y = wrap0f(state.big_saucer.pos.y + state.big_saucer.vel.y, SCREEN_HEIGHT);
+    state.big_saucer.pos.x = wrap0f(state.big_saucer.pos.x + state.big_saucer.vel.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
+    state.big_saucer.pos.y = wrap0f(state.big_saucer.pos.y + state.big_saucer.vel.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
     if (state.b_saucer) {
         static float time = 0.0f;
         time += (float) global_time.dt;
@@ -544,8 +591,8 @@ void update_saucer(void) {
 }
 
 void update_ship(void) {
-    state.ship.position.x = wrap0f(state.ship.position.x + state.ship.velocity.x, SCREEN_WIDTH);
-    state.ship.position.y = wrap0f(state.ship.position.y + state.ship.velocity.y, SCREEN_HEIGHT);
+    state.ship.position.x = wrap0f(state.ship.position.x + state.ship.velocity.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
+    state.ship.position.y = wrap0f(state.ship.position.y + state.ship.velocity.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
 
     const float radians = state.ship.angle * ((float) M_PI / 180.0f);
     if (state.w) {
@@ -573,8 +620,8 @@ void update_ship(void) {
 void update_projectiles(void) {
     for (size_t i = 0; i < array_list_size(state.projectiles); i++) {
         projectile *p = array_list_get(state.projectiles, i);
-        p->pos.x = wrap0f(p->pos.x + p->vel.x, SCREEN_WIDTH);
-        p->pos.y = wrap0f(p->pos.y + p->vel.y, SCREEN_HEIGHT);
+        p->pos.x = wrap0f(p->pos.x + p->vel.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
+        p->pos.y = wrap0f(p->pos.y + p->vel.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
         p->ttl -= (float) global_time.dt;
         if (p->ttl < 0) array_list_remove(state.projectiles, i);
     }
@@ -583,8 +630,8 @@ void update_projectiles(void) {
 void update_asteroid_explosion_particles(void) {
     for (size_t i = 0; i < array_list_size(state.asteroid_particles); i++) {
         death_line *d = array_list_get(state.asteroid_particles, i);
-        d->p1 = v2_sum(d->p1, d->vel);
-        d->p2 = v2_sum(d->p2, d->vel);
+        d->p1 = v2_sum(d->p1, v2_scale(v2_scale(d->vel, SPEED), (float)global_time.dt));
+        d->p2 = v2_sum(d->p2, v2_scale(v2_scale(d->vel, SPEED), (float)global_time.dt));
         d->ttl -= (float) global_time.dt;
         if (d->ttl < 0) array_list_remove(state.asteroid_particles, i);
     }
@@ -642,12 +689,12 @@ void handle_input(void) {
                     case SDL_SCANCODE_A:
                         state.a = 1;
                         break;
-                    case SDL_SCANCODE_F:
-                        play_saucer_sound();
+                    case SDL_SCANCODE_ESCAPE:
+                        state.pause_state_change = state.pause_state_change ?  0 : 1;
                         break;
                     case SDL_SCANCODE_SPACE:
                         const SDL_KeyboardEvent e = event.key;
-                        if (!e.repeat && !state.dead) add_projectile(state.ship.position, true, false);
+                        if (!e.repeat && !state.dead && !global_time.is_paused) add_projectile(state.ship.position, true, false);
                         break;
                     default:
                         break;
@@ -686,8 +733,8 @@ void render_spacecraft_explosion(const bool saucer, const bool small) {
         death_line d = saucer ? state.saucer_death_lines[i] : state.ship_death_lines[i];
         if (d.ttl > 0.0f) SDL_RenderLine(state.renderer, pos.x + d.p1.x, pos.y + d.p1.y, pos.x + d.p2.x,
                                          pos.y + d.p2.y);
-        d.p1 = v2_sum(d.p1, d.vel);
-        d.p2 = v2_sum(d.p2, d.vel);
+        d.p1 = v2_sum(d.p1, v2_scale(v2_scale(d.vel, SPEED), (float)global_time.dt));
+        d.p2 = v2_sum(d.p2, v2_scale(v2_scale(d.vel, SPEED), (float)global_time.dt));
         d.ttl -= (float) global_time.dt;
         if (saucer) {
             state.saucer_death_lines[i] = d;
@@ -866,7 +913,7 @@ void update_hyperspace(void) {
         state.hyperspace_lines[i].x = (SCREEN_WIDTH / 2.0f) + (state.hyperspace_lines[i].target_x * scale);
         state.hyperspace_lines[i].y = (SCREEN_HEIGHT / 2.0f) + (state.hyperspace_lines[i].target_y * scale);
 
-        if (state.hyperspace_lines[i].z < 5.0f) {
+        if (state.hyperspace_lines[i].z < 5.0f && !global_time.is_paused) {
             state.hyperspace_lines[i].z = randf(50.0f, 100.0f);
             state.hyperspace_lines[i].target_x = randf(-200.0f, 200.0f);
             state.hyperspace_lines[i].target_y = randf(-200.0f, 200.0f);
@@ -1067,7 +1114,7 @@ void add_saucer_death_lines(const bool small, const float scale) {
     }
 }
 
-void add_particles(const v2 pos, const int n, float r,  float g, float b) {
+void add_particles(const v2 pos, const int n, const float r, const float g, const float b) {
 
     for (int i = 0; i < n; i++) {
         const float scale = 25.0f;

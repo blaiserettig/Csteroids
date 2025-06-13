@@ -20,17 +20,7 @@ static float randf(const float min, const float max) {
 }
 
 static int randi(const int min, const int max) {
-    if (min >= max) return min;
-
-    const int range = max - min + 1;
-    const int limit = RAND_MAX - (RAND_MAX % range);
-    int value;
-
-    do {
-        value = rand();
-    } while (value >= limit);
-
-    return min + (value % range);
+    return rand() % (max - min + 1) + min;
 }
 
 #endif //MATH_EXT_H

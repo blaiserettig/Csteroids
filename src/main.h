@@ -6,8 +6,10 @@
 #include "audio.h"
 #include "util/array_list.h"
 
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
+
+#define SPEED 60
 
 typedef struct {
     v2 position;
@@ -50,6 +52,8 @@ typedef struct {
     SDL_Time last;
     double dt;
     float scale;
+    bool is_paused;
+    float pre_pause_scale;
 } g_time;
 
 typedef struct {
@@ -74,6 +78,7 @@ typedef struct {
     bool render_b_saucer;
     bool render_stage_text;
     bool should_spawn_next_stage;
+    bool pause_state_change;
     ship ship;
     ArrayList *asteroids;
     ArrayList *projectiles;
@@ -120,6 +125,10 @@ void handle_input();
 void update();
 
 void update_time();
+
+void pause_game(void);
+
+void unpause_game(void);
 
 void update_saucer_spawn(void);
 
