@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "SDL3/SDL_stdinc.h"
 #include "util/v2.h"
 
 typedef enum {
@@ -32,6 +33,7 @@ typedef struct {
     float angle;
     float scale;
     uint8_t color;
+    Uint8 r, g, b; // ignore this right after the line above lmao
     asteroid_size size;
     asteroid_type type;
     int armor_hits;

@@ -265,6 +265,10 @@ void update(void) {
     const bool update_player = state.player_static_timer > 0.0f;
     if (update_player) {
         state.player_static_timer -= (float)global_time.dt;
+        state.w = 0;
+        state.a = 0;
+        state.d = 0;
+        render_static(state.ship.position.x, state.ship.position.y, 1.0f, 200, 200, 200);
     }
 
     if (state.player_invincible_timer > 0.0f) {
@@ -443,7 +447,7 @@ void on_ship_hit(void) {
     music_stop();
     state.dead = true;
     add_ship_death_lines(25.0f);
-    add_particles(state.ship.position, randi(30, 40));
+    add_particles(state.ship.position, randi(30, 40), NAN, NAN, NAN);
     const SDL_TimerID id = SDL_AddTimer(3000, reset_level, NULL);
     if (id == 0) {
         SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
@@ -535,6 +539,34 @@ void update_asteroid_explosion_particles(void) {
     }
 }
 
+void render_static(const float center_x, const float center_y, const float scale, const Uint8 r, const Uint8 g, const Uint8 b) {
+    static float accumulated_time = 0.0f;
+    accumulated_time += (float)global_time.dt;
+    const float rotation = accumulated_time * 10.0f;
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+
+    const int num_points = 12;
+    const float base_radius = 25.0f * scale;
+
+    float points_x[num_points];
+    float points_y[num_points];
+
+    for (int i = 0; i < num_points; i++) {
+        const float angle = (float)i * ((float)M_TAU / (float)num_points) + rotation;
+
+        const float jag = 8.0f * scale * sinf(rotation * 3.0f + (float)i * 1.2f);
+        const float radius = base_radius + jag;
+
+        points_x[i] = center_x + cosf(angle) * radius;
+        points_y[i] = center_y + sinf(angle) * radius;
+    }
+
+    for (int i = 0; i < num_points; i++) {
+        const int next = (i + 1) % num_points;
+        SDL_RenderLine(state.renderer, points_x[i], points_y[i], points_x[next], points_y[next]);
+    }
+}
+
 void handle_input(void) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -564,7 +596,7 @@ void handle_input(void) {
                         break;
                     case SDL_SCANCODE_SPACE:
                         const SDL_KeyboardEvent e = event.key;
-                        if (!e.repeat) add_projectile(state.ship.position, true, false);
+                        if (!e.repeat && !state.dead) add_projectile(state.ship.position, true, false);
                         break;
                     default:
                         break;
@@ -744,7 +776,7 @@ void on_saucer_hit(const bool small) {
     stop_saucer_sound();
     if (small) {
         state.score += 1000;
-        add_particles(state.small_saucer.pos, 25);
+        add_particles(state.small_saucer.pos, 25, NAN, NAN, NAN);
         add_saucer_death_lines(true, 25.0f);
         state.s_saucer = false;
         state.render_s_saucer = true;
@@ -754,7 +786,7 @@ void on_saucer_hit(const bool small) {
         }
     } else {
         state.score += 200;
-        add_particles(state.big_saucer.pos, 25);
+        add_particles(state.big_saucer.pos, 25, NAN, NAN, NAN);
         add_saucer_death_lines(true, 25.0f);
         state.b_saucer = false;
         state.render_b_saucer = true;
@@ -981,7 +1013,8 @@ void add_saucer_death_lines(const bool small, const float scale) {
     }
 }
 
-void add_particles(const v2 pos, const int n) {
+void add_particles(const v2 pos, const int n, float r,  float g, float b) {
+
     for (int i = 0; i < n; i++) {
         const float scale = 25.0f;
         const float angle = randf(0.01f, 1.0f) * (float) M_TAU;
@@ -990,9 +1023,14 @@ void add_particles(const v2 pos, const int n) {
                            .vel = (v2){-sinf(angle), cosf(angle)},
                            .p1 = (v2){randf(0.0f, 0.05f) * scale, randf(0.0f, 0.05f) * scale},
                            .p2 = (v2){randf(0.0f, 0.05f) * scale, randf(0.0f, 0.05f) * scale},
-                           .ttl = randf(0.6f, 1.0f)
+                           .ttl = randf(0.6f, 1.0f),
+                           .r = r,
+                           .g = g,
+                           .b = b
                        });
     }
+
+    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 }
 
 void add_projectile(const v2 pos, const bool from_ship, const bool from_small_saucer) {

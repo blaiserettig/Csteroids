@@ -49,6 +49,9 @@ void render_asteroid_explosion_particles(void) {
     SDL_SetRenderDrawColor(state.renderer, 128, 128, 128, 255);
     for (size_t i = 0; i < array_list_size(state.asteroid_particles); i++) {
         const death_line *d = array_list_get(state.asteroid_particles, i);
+        if (!isnan(d->r) && !isnan(d->g) && !isnan(d->b)) {
+            SDL_SetRenderDrawColor(state.renderer, (Uint8)d->r, (Uint8)d->g, (Uint8)d->b, 255);
+        }
         SDL_RenderLine(state.renderer, d->pos.x + d->p1.x, d->pos.y + d->p1.y, d->pos.x + d->p2.x, d->pos.y + d->p2.y);
     }
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
@@ -79,9 +82,148 @@ void update_asteroids(void) {
     }
 }
 
+void draw_2x_icon(const float center_x, const float center_y, const float scale, const Uint8 r,  const Uint8 g, const Uint8 b) {
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    // 2
+    SDL_RenderLine(state.renderer, center_x - 3 * scale, center_y - 4 * scale, center_x - 1 * scale,
+                   center_y - 4 * scale);
+    SDL_RenderLine(state.renderer, center_x - 1 * scale, center_y - 4 * scale, center_x - 1 * scale,
+                   center_y - 2 * scale);
+    SDL_RenderLine(state.renderer, center_x - 1 * scale, center_y - 2 * scale, center_x - 3 * scale,
+                   center_y - 2 * scale);
+    SDL_RenderLine(state.renderer, center_x - 3 * scale, center_y - 2 * scale, center_x - 3 * scale, center_y);
+    SDL_RenderLine(state.renderer, center_x - 3 * scale, center_y, center_x - 1 * scale, center_y);
+
+    // X
+    SDL_RenderLine(state.renderer, center_x + 1 * scale, center_y - 3 * scale + 2, center_x + 3 * scale,
+                   center_y - 1 * scale + 2);
+    SDL_RenderLine(state.renderer, center_x + 3 * scale, center_y - 3 * scale + 2, center_x + 1 * scale,
+                   center_y - 1 * scale + 2);
+}
+
+void draw_chain_icon(const float center_x, const float center_y, const float scale, const Uint8 r,  const Uint8 g, const Uint8 b) {
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    // Top
+    SDL_RenderLine(state.renderer, center_x - 1 * scale, center_y - 3 * scale - 4, center_x + 1 * scale,
+                   center_y - 1 * scale - 4);
+    SDL_RenderLine(state.renderer, center_x + 1 * scale, center_y - 3 * scale - 4, center_x - 1 * scale,
+                   center_y - 1 * scale - 4);
+
+    // Bottom left
+    SDL_RenderLine(state.renderer, center_x - 3 * scale, center_y + 1 * scale - 4, center_x - 1 * scale,
+                   center_y + 3 * scale - 4);
+    SDL_RenderLine(state.renderer, center_x - 1 * scale, center_y + 1 * scale - 4, center_x - 3 * scale,
+                   center_y + 3 * scale - 4);
+
+    // Bottom right
+    SDL_RenderLine(state.renderer, center_x + 1 * scale, center_y + 1 * scale - 4, center_x + 3 * scale,
+                   center_y + 3 * scale - 4);
+    SDL_RenderLine(state.renderer, center_x + 3 * scale, center_y + 1 * scale - 4, center_x + 1 * scale,
+                   center_y + 3 * scale - 4);
+}
+
+void draw_shield_icon(const float center_x, const float center_y, const float scale, const Uint8 r,  const Uint8 g, const Uint8 b) {
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    SDL_RenderLine(state.renderer, center_x, center_y - 4 * scale, center_x - 3 * scale, center_y - 1 * scale);
+    SDL_RenderLine(state.renderer, center_x - 3 * scale, center_y - 1 * scale, center_x - 2 * scale,
+                   center_y + 3 * scale);
+    SDL_RenderLine(state.renderer, center_x - 2 * scale, center_y + 3 * scale, center_x, center_y + 2 * scale);
+    SDL_RenderLine(state.renderer, center_x, center_y + 2 * scale, center_x + 2 * scale, center_y + 3 * scale);
+    SDL_RenderLine(state.renderer, center_x + 2 * scale, center_y + 3 * scale, center_x + 3 * scale,
+                   center_y - 1 * scale);
+    SDL_RenderLine(state.renderer, center_x + 3 * scale, center_y - 1 * scale, center_x, center_y - 4 * scale);
+}
+
+void draw_phaser_icon(const float center_x, const float center_y, const float scale, const Uint8 r,  const Uint8 g, const Uint8 b) {
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    // Inner
+    SDL_RenderLine(state.renderer, center_x - 2 * scale, center_y - 1 * scale, center_x - 1 * scale, center_y);
+    SDL_RenderLine(state.renderer, center_x - 1 * scale, center_y, center_x - 2 * scale, center_y + 1 * scale);
+
+    // Middle
+    //SDL_RenderLine(state.renderer, center_x - 3 * scale, center_y - 2 * scale, center_x - 2 * scale, center_y);
+    //SDL_RenderLine(state.renderer, center_x - 2 * scale, center_y, center_x - 3 * scale, center_y + 2 * scale);
+
+    // Outer
+    SDL_RenderLine(state.renderer, center_x - 4 * scale, center_y - 3 * scale, center_x - 3 * scale, center_y);
+    SDL_RenderLine(state.renderer, center_x - 3 * scale, center_y, center_x - 4 * scale, center_y + 3 * scale);
+
+    // point
+    SDL_RenderPoint(state.renderer, center_x + 1 * scale, center_y);
+    SDL_RenderPoint(state.renderer, center_x + 1 * scale - 1, center_y);
+    SDL_RenderPoint(state.renderer, center_x + 1 * scale, center_y - 1);
+    SDL_RenderPoint(state.renderer, center_x + 1 * scale, center_y + 1);
+    SDL_RenderPoint(state.renderer, center_x + 1 * scale + 1, center_y);
+}
+
+void draw_split_icon(const float center_x, const float center_y, const float scale, const Uint8 r,  const Uint8 g, const Uint8 b) {
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    // Six dots in two groups
+    for (int i = -1; i < 2; i++) {
+        for (int j = -1; j < 2; j++) {
+            SDL_RenderPoint(state.renderer, (center_x - 2 * scale) + (float) i, center_y - 1 * scale + (float) j);
+            SDL_RenderPoint(state.renderer, center_x - 3 * scale + (float) i, center_y + 1 * scale + (float) j);
+            SDL_RenderPoint(state.renderer, center_x - 1 * scale + (float) i, center_y + 1 * scale + (float) j);
+
+            SDL_RenderPoint(state.renderer, center_x + 2 * scale + (float) i, center_y - 1 * scale + (float) j);
+            SDL_RenderPoint(state.renderer, center_x + 1 * scale + (float) i, center_y + 1 * scale + (float) j);
+            SDL_RenderPoint(state.renderer, center_x + 3 * scale + (float) i, center_y + 1 * scale + (float) j);
+        }
+    }
+}
+
+void draw_vampire_icon(const float center_x, const float center_y, const float scale, const Uint8 r,  const Uint8 g, const Uint8 b) {
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    // Two fangs
+    SDL_RenderLine(state.renderer, center_x - 2 * scale, center_y - 2 * scale, center_x - 2 * scale,
+                   center_y + 1 * scale);
+    SDL_RenderLine(state.renderer, center_x - 2 * scale, center_y + 1 * scale, center_x - 1 * scale,
+                   center_y + 2 * scale);
+
+    SDL_RenderLine(state.renderer, center_x + 2 * scale, center_y - 2 * scale, center_x + 2 * scale,
+                   center_y + 1 * scale);
+    SDL_RenderLine(state.renderer, center_x + 2 * scale, center_y + 1 * scale, center_x + 1 * scale,
+                   center_y + 2 * scale);
+}
+
+void draw_static_icon(const float center_x, const float center_y, const float scale, const Uint8 r,  const Uint8 g, const Uint8 b) {
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    SDL_RenderLine(state.renderer,
+                   center_x - 1 * scale, center_y - 3 * scale,
+                   center_x + 1 * scale, center_y - 1 * scale);
+
+    SDL_RenderLine(state.renderer,
+                   center_x + 1 * scale, center_y - 1 * scale,
+                   center_x - 1 * scale, center_y + 1 * scale);
+
+    SDL_RenderLine(state.renderer,
+                   center_x - 1 * scale, center_y + 1 * scale,
+                   center_x + 1 * scale, center_y + 3 * scale);
+}
+
+void draw_lucky_icon(const float center_x, const float center_y, const float scale, const Uint8 r,  const Uint8 g, const Uint8 b) {
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    // 4-leaf clover
+    SDL_RenderLine(state.renderer, center_x, center_y, center_x - 1 * scale, center_y - 2 * scale);
+    SDL_RenderLine(state.renderer, center_x, center_y, center_x + 1 * scale, center_y - 2 * scale);
+
+    SDL_RenderLine(state.renderer, center_x, center_y, center_x + 2 * scale, center_y - 1 * scale);
+    SDL_RenderLine(state.renderer, center_x, center_y, center_x + 2 * scale, center_y + 1 * scale);
+
+    SDL_RenderLine(state.renderer, center_x, center_y, center_x - 1 * scale, center_y + 2 * scale);
+    SDL_RenderLine(state.renderer, center_x, center_y, center_x + 1 * scale, center_y + 2 * scale);
+
+    SDL_RenderLine(state.renderer, center_x, center_y, center_x - 2 * scale, center_y - 1 * scale);
+    SDL_RenderLine(state.renderer, center_x, center_y, center_x - 2 * scale, center_y + 1 * scale);
+}
+
 void render_asteroids(void) {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
-        const asteroid *a = array_list_get(state.asteroids, i);
+        asteroid *a = array_list_get(state.asteroids, i);
+
+        const float icon_scale = a->size == LARGE ? 2.25f : a->size == MEDIUM ? 2.0f : 1.0f;
+        const float center_x = a->position.x;
+        const float center_y = a->position.y;
 
         int r, g, b;
         switch (a->type) {
@@ -89,51 +231,63 @@ void render_asteroids(void) {
                 r = g = b = a->color;
                 break;
             case DBLXP:
-                r = a->color - 30;
+                r = a->color - 60;
                 g = (a->color + 80 > 255) ? 255 : a->color + 80;
-                b = a->color - 30;
+                b = a->color - 60;
+                draw_2x_icon(center_x, center_y, icon_scale, r, g, b);
                 break; //  green tint
             case CHAIN:
                 r = (a->color + 80 > 255) ? 255 : a->color + 80;
-                g = a->color;
-                b = a->color;
+                g = a->color - 60;
+                b = a->color - 60;
+                draw_chain_icon(center_x, center_y, icon_scale, r, g, b);
                 break; //  red tint
             case ARMOR:
                 r = g = b = a->color - 80;
+                //draw_shield_icon(center_x, center_y, icon_scale);
                 break; // darker metallic
             case PHASER:
                 if (a->is_phased) {
                     r = g = b = a->color / 3; //  faint when phased
                 } else {
-                    r = a->color;
-                    g = a->color;
+                    r = a->color - 60;
+                    g = a->color - 60;
                     b = (a->color + 80 > 255) ? 255 : a->color + 80; // blue tint
                 }
+                draw_phaser_icon(center_x, center_y, icon_scale, r, g, b);
                 break;
             case SPLIT:
-                r = a->color;
+                r = (a->color + 80 > 255) ? 255 : a->color + 80;
                 g = (a->color - 80 < 128) ? 128 : a->color - 80;
                 b = (a->color + 80 > 255) ? 255 : a->color + 80;
-                break; // purple tint
+                draw_split_icon(center_x, center_y, icon_scale, r, g, b);
+                break; // pink tint
             case VAMPIRE:
                 r = (a->color + 50 > 255) ? 255 : a->color + 50;
                 g = (a->color - 50 < 128) ? 128 : a->color - 50;
                 b = (a->color - 50 < 128) ? 128 : a->color - 50;
+                draw_vampire_icon(center_x, center_y, icon_scale, r, g, b);
                 break; // red tint
             case LUCKY:
                 r = (a->color + 80 > 255) ? 255 : a->color + 80;
                 g = (a->color + 80 > 255) ? 255 : a->color + 80;
-                b = a->color;
+                b = a->color - 60;
+                draw_lucky_icon(center_x, center_y, icon_scale, r, g, b);
                 break; // gold tint
             case STATIC:
                 r = a->color - 60;
                 g = a->color - 60;
                 b = (a->color + 60 > 255) ? 255 : a->color + 60;
+                draw_static_icon(center_x, center_y, icon_scale, r, g, b);
                 break; // blue tint
             default:
                 r = g = b = a->color;
                 break;
         }
+
+        a->r = r;
+        a->g = g;
+        a->b = b;
 
         SDL_SetRenderDrawColor(state.renderer, r, g, b, a->is_phased ? 100 : 255);
 
@@ -169,7 +323,7 @@ void add_new_asteroid(const asteroid_size size, const v2 pos) {
 void add_new_asteroid_typed(const asteroid_size size, v2 pos, const asteroid_type type) {
     const int n = randi(12, 18);
     // ReSharper disable once CppDFAMemoryLeak
-    // Clion says there's a memory leak here, but all points arrays are freed on application exit
+    // Clion says there's a memory leak here, but all points arrays are freed in every code path
     v2 *points = malloc((size_t) n * sizeof(v2));
 
     for (int i = 0; i < n; i++) {
@@ -243,7 +397,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
         state.player_static_timer = 2.0f;
     }
 
-    add_particles(a->position, randi(15, 20));
+    add_particles(a->position, randi(15, 20), a->r, a->g, a->b);
 
     int base_score = 0;
     const int xp_multiplier = (a->type == DBLXP) ? 2 : 1;
@@ -257,6 +411,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
                 handle_lucky_bonus();
             }
 
+            free(a->points);
             array_list_remove(state.asteroids, i);
             play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.small_asteroid_hit);
             break;
@@ -275,6 +430,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
                 handle_lucky_bonus();
             }
 
+            free(a->points);
             array_list_remove(state.asteroids, i);
             play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.medium_asteroid_hit);
             break;
@@ -293,6 +449,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
                 handle_lucky_bonus();
             }
 
+            free(a->points);
             array_list_remove(state.asteroids, i);
             play_sound_effect(AUDIO_STREAM_ASTEROID, audio_clips.big_asteroid_hit);
             break;
@@ -346,14 +503,13 @@ void trigger_chain_reaction(const v2 explosion_pos, const float radius) {
 
 asteroid_type get_random_asteroid_type(void) {
     const int roll = randi(1, 100);
-
-    if (roll <= 50) return STD;     // 50% standard
-    if (roll <= 65) return DBLXP;   // 15% double XP
-    if (roll <= 75) return CHAIN;   // 10% chain reaction
-    if (roll <= 85) return ARMOR;   // 10% armored
-    if (roll <= 90) return PHASER;  // 5% phaser
-    if (roll <= 95) return SPLIT;   // 5% splitter
+    if (roll <= 50) return STD; // 50% standard
+    if (roll <= 65) return DBLXP; // 15% double XP
+    if (roll <= 75) return CHAIN; // 10% chain reaction
+    if (roll <= 85) return ARMOR; // 10% armored
+    if (roll <= 90) return PHASER; // 5% phaser
+    if (roll <= 95) return SPLIT; // 5% splitter
     if (roll <= 98) return VAMPIRE; // 3% vampire
-    if (roll <= 99) return STATIC;  // 1% static
-    return LUCKY;                   // 1% lucky
+    if (roll <= 99) return STATIC; // 1% static
+    return LUCKY; // 1% lucky
 }

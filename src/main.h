@@ -22,6 +22,9 @@ typedef struct {
     v2 p1;
     v2 p2;
     float ttl;
+    float r;
+    float g;
+    float b;
 } death_line;
 
 typedef struct {
@@ -140,6 +143,8 @@ void reset_game(void);
 
 void start_game_over(void);
 
+void render_static(float center_x, float center_y, float scale, Uint8 r, Uint8 g, Uint8 b);
+
 void start_timer(float seconds);
 
 void update_ship(void);
@@ -196,7 +201,7 @@ void add_ship_death_lines(float scale);
 
 void add_saucer_death_lines(bool small, float scale);
 
-void add_particles(v2 pos, int n);
+void add_particles(const v2 pos, const int n, float r,  float g, float b);
 
 void add_projectile(v2 pos, bool from_ship, bool from_small_saucer);
 
