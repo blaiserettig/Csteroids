@@ -4,6 +4,8 @@
 #include "util/v2.h"
 #include "asteroid.h"
 #include "audio.h"
+#include "button.h"
+#include "game_types.h"
 #include "util/array_list.h"
 
 #define SCREEN_WIDTH 800
@@ -83,7 +85,7 @@ typedef struct {
     ArrayList *asteroids;
     ArrayList *projectiles;
     ArrayList *asteroid_particles;
-    ArrayList *buttons;
+    button_system button_system;
     death_line ship_death_lines[5];
     death_line saucer_death_lines[12];
     hyperspace_line hyperspace_lines[100];
@@ -98,12 +100,8 @@ typedef struct {
     int a;
     int d;
 
-    enum {
-        START_MENU,
-        GAME_VIEW,
-        OVER_MENU,
-        SHOP_MENU,
-    } state;
+    enum state state;
+    enum state previous_state;
 
     float player_static_timer;
     float player_invincible_timer;
@@ -129,6 +127,10 @@ void update_time();
 void pause_game(void);
 
 void unpause_game(void);
+
+void start_game(void);
+
+void end_game(void);
 
 void update_saucer_spawn(void);
 

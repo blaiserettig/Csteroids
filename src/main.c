@@ -87,6 +87,29 @@ void main_loop(void) {
     #endif
 }
 
+void init_buttons(void) {
+    button_system_init(&state.button_system);
+    button_system_add_default(&state.button_system,
+                              (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f - 32, 128, 64}, "START",
+                              start_game, START_MENU);
+    button_system_add_default(&state.button_system,
+                              (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f - 32, 128, 64}, "RESTART",
+                              reset_game, OVER_MENU);
+    button_system_add_default(&state.button_system,
+                          (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f - 32, 128, 64}, "RESUME",
+                          unpause_game, PAUSE_MENU);
+    button_system_add_default(&state.button_system,
+                              (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 48.0f, 128, 64}, "QUIT",
+                              end_game, START_MENU);
+    button_system_add_default(&state.button_system,
+                          (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 48.0f, 128, 64}, "QUIT",
+                          end_game, OVER_MENU);
+    button_system_add_default(&state.button_system,
+                          (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 48.0f, 128, 64}, "QUIT",
+                          end_game, PAUSE_MENU);
+
+}
+
 int main(int argc, char *argv[]) {
 
     const unsigned long seed = mix(time(NULL), SDL_GetTicks(), clock());
@@ -98,41 +121,10 @@ int main(int argc, char *argv[]) {
     state.asteroids = array_list_create(sizeof(asteroid));
     state.projectiles = array_list_create(sizeof(projectile));
     state.asteroid_particles = array_list_create(sizeof(death_line));
-    state.buttons = array_list_create(sizeof(button));
 
     init_hyperspace();
 
-    array_list_add(state.buttons, &(button){
-                       .draw_rect = {.x = SCREEN_WIDTH / 2.0f - 64, .y = SCREEN_HEIGHT / 2.0f - 32, .w = 128, .h = 64},
-                       .btn_color = {.r = 200, .g = 200, .b = 200, .a = 255},
-                       .pressed = false,
-                       .tag = 0,
-                       .label = "START",
-                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255},
-                       .play_hover = true
-                   });
-
-    array_list_add(state.buttons, &(button){
-                       .draw_rect = {.x = SCREEN_WIDTH / 2.0f - 64, .y = SCREEN_HEIGHT / 2.0f - 32, .w = 128, .h = 64},
-                       .btn_color = {.r = 200, .g = 200, .b = 200, .a = 255},
-                       .pressed = false,
-                       .tag = 10,
-                       .label = "RESTART",
-                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255},
-                       .play_hover = true
-                   });
-
-    array_list_add(state.buttons, &(button){
-                       .draw_rect = {
-                           .x = SCREEN_WIDTH / 2.0f - 64, .y = SCREEN_HEIGHT / 2.0f + 48.0f, .w = 128, .h = 64
-                       },
-                       .btn_color = {.r = 200, .g = 200, .b = 200, .a = 255},
-                       .pressed = false,
-                       .tag = -1,
-                       .label = "QUIT",
-                       .label_color = {.r = 0, .g = 0, .b = 0, .a = 255},
-                       .play_hover = true
-                   });
+    init_buttons();
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
@@ -248,7 +240,25 @@ void exit_pause_menu(void) {
     SDL_Log("EXIT");
 }
 
+void start_game(void) {
+    global_time.dt = 0.0f;
+    SDL_GetCurrentTime(&global_time.now);
+    SDL_GetCurrentTime(&global_time.last);
+    state.spawn = true;
+    const SDL_TimerID id = SDL_AddTimer(0001, begin_new_stage, NULL);
+    if (id == 0) {
+        SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+    }
+    state.state = GAME_VIEW;
+}
+
+void end_game(void) {
+    state.quit = true;
+}
+
 void update(void) {
+    button_system_show_buttons_for_state(&state.button_system, state.state);
+
     update_time();
 
     handle_input();
@@ -278,37 +288,7 @@ void update(void) {
                                 (v2){(float) SCREEN_WIDTH / 2.0f, (float) SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
     }
 
-    for (int i = 0; i < array_list_size(state.buttons); i++) {
-        button *b = array_list_get(state.buttons, i);
-        if (state.state == START_MENU) {
-            if (b->tag == 0 && button_press(state.renderer, b)) {
-                // start game button
-                global_time.dt = 0.0f;
-                SDL_GetCurrentTime(&global_time.now);
-                SDL_GetCurrentTime(&global_time.last);
-                state.spawn = true;
-                const SDL_TimerID id = SDL_AddTimer(0001, begin_new_stage, NULL);
-                if (id == 0) {
-                    SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
-                }
-                state.state = GAME_VIEW;
-            }
-            if (b->tag == -1 && button_press(state.renderer, b)) {
-                state.quit = true;
-            }
-        }
-        if (state.state == OVER_MENU) {
-            if (b->tag == 10 && button_press(state.renderer, b)) {
-                // restart button
-                reset_game();
-                state.state = GAME_VIEW;
-                return;
-            }
-            if (b->tag == -1 && button_press(state.renderer, b)) {
-                state.quit = true;
-            }
-        }
-    }
+    button_system_render(&state.button_system, state.renderer);
 
     if (state.state == START_MENU) return;
 
@@ -380,6 +360,16 @@ void update(void) {
     if (state.render_s_saucer) render_spacecraft_explosion(true, true);
     if (state.render_b_saucer) render_spacecraft_explosion(true, false);
 
+    if (state.state == PAUSE_MENU) {
+        for (int i = 0; i < SCREEN_HEIGHT; i ++) {
+            SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 200);
+            SDL_RenderLine(state.renderer, 0, (float)i, (float) SCREEN_WIDTH, (float) i);
+        }
+        SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+        render_text_3d_extruded(state.renderer, "PAUSED",
+                                (v2){(float) SCREEN_WIDTH / 2.0f, (float) SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
+    }
+
     if (state.draw_lucky) {
         render_text_thick(state.renderer, state.luck_text, (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 75.0f}, 25.0f, 2.0f, 25.0f);
         if (state.draw_lucky_timer) return;
@@ -422,6 +412,8 @@ void pause_game(void) {
     if (!global_time.is_paused) {
         global_time.pre_pause_scale = global_time.scale;
         global_time.is_paused = true;
+        state.previous_state = state.state;
+        state.state = PAUSE_MENU;
         enter_pause_menu();
     }
 }
@@ -430,6 +422,7 @@ void unpause_game(void) {
     if (global_time.is_paused) {
         global_time.scale = global_time.pre_pause_scale;
         global_time.is_paused = false;
+        state.state = state.previous_state;
         exit_pause_menu();
     }
 }
@@ -478,6 +471,7 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
 }
 
 void reset_game(void) {
+    state.state = GAME_VIEW;
     reset_state();
     destroy_all_asteroids();
     array_list_free(state.asteroids);
@@ -668,11 +662,7 @@ void render_static(const float center_x, const float center_y, const float scale
 void handle_input(void) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        for (size_t i = 0; i < array_list_size(state.buttons); i++) {
-            button *b = array_list_get(state.buttons, i);
-            if (state.state == OVER_MENU && b->tag < 20 || state.state == START_MENU && b->tag < 10)
-                button_process_event(b, &event);
-        }
+        button_system_process_event(&state.button_system, &event);
         switch (event.type) {
             case SDL_EVENT_QUIT:
                 state.quit = true;
@@ -922,7 +912,7 @@ void update_hyperspace(void) {
 }
 
 void render_hyperspace(void) {
-    if (state.state == GAME_VIEW || state.state == OVER_MENU) {
+    if (state.state == GAME_VIEW || state.state == OVER_MENU || state.state == PAUSE_MENU) {
         SDL_SetRenderDrawColor(state.renderer, 16, 16, 16, 255);
     } else {
         SDL_SetRenderDrawColor(state.renderer, 64, 64, 64, 255);
@@ -1208,10 +1198,10 @@ void cleanup(void) {
     destroy_all_asteroids();
     music_cleanup();
     cleanup_saucer_sound();
+    button_system_cleanup(&state.button_system);
     array_list_free(state.asteroids);
     array_list_free(state.projectiles);
     array_list_free(state.asteroid_particles);
-    array_list_free(state.buttons);
     SDL_DestroyTexture(state.intermediate_texture);
     SDL_DestroyWindow(state.window);
     SDL_Quit();

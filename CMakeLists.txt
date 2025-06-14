@@ -18,6 +18,7 @@ add_executable(main src/main.c
         src/button.h
         src/audio.c
         src/audio.h
+        src/game_types.h
 )
 
 # Include the SDL3 header directory
