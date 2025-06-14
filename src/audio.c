@@ -48,7 +48,7 @@ static SDL_AudioStream *create_and_bind_stream(const char *name, const SDL_Audio
         SDL_Log("Failed to create %s audio stream: %s", name, SDL_GetError());
         return NULL;
     }
-    SDL_Log("%s audio stream created successfully", name);
+    //SDL_Log("%s audio stream created successfully", name);
 
     int test_queued = SDL_GetAudioStreamQueued(stream);
     SDL_Log("%s stream test - queued bytes: %d", name, test_queued);
@@ -66,7 +66,7 @@ static SDL_AudioStream *create_and_bind_stream(const char *name, const SDL_Audio
     SDL_Log("%s audio stream bound to device", name);
 
     test_queued = SDL_GetAudioStreamQueued(stream);
-    SDL_Log("%s stream test after binding - queued bytes: %d", name, test_queued);
+    //SDL_Log("%s stream test after binding - queued bytes: %d", name, test_queued);
     if (test_queued < 0) {
         SDL_Log("%s stream became invalid after binding!", name);
         SDL_DestroyAudioStream(stream);
@@ -84,7 +84,7 @@ int init_audio(void) {
         SDL_Log("SDL_OpenAudioDevice Error: %s", SDL_GetError());
         return 1;
     }
-    SDL_Log("Audio device opened successfully: %u", state.audio_device);
+    //SDL_Log("Audio device opened successfully: %u", state.audio_device);
 
     if (state.audio_device == 0) {
         SDL_Log("Invalid audio device ID returned");
@@ -139,7 +139,7 @@ int init_audio(void) {
 }
 
 void play_sound_effect(const audio_stream_type stream_type, const audio_clip clip) {
-    SDL_Log("Playing sound effect: %u bytes", clip.length);
+    //SDL_Log("Playing sound effect: %u bytes", clip.length);
 
     SDL_AudioStream *stream = NULL;
     const char *stream_name = NULL;
@@ -191,7 +191,7 @@ void play_sound_effect(const audio_stream_type stream_type, const audio_clip cli
 
 
 int load_audio_clip(const char *filename, audio_clip *clip) {
-    SDL_Log("Loading audio file: %s", filename);
+    //SDL_Log("Loading audio file: %s", filename);
 
     clip->data = NULL;
     clip->length = 0;
@@ -206,15 +206,15 @@ int load_audio_clip(const char *filename, audio_clip *clip) {
         return -1;
     }
 
-    SDL_Log("Loaded WAV: %d Hz, %d channels, format %d, length %u bytes",
-            wav_spec.freq, wav_spec.channels, wav_spec.format, wav_length);
+    //SDL_Log("Loaded WAV: %d Hz, %d channels, format %d, length %u bytes",
+            //wav_spec.freq, wav_spec.channels, wav_spec.format, wav_length);
 
     const SDL_AudioSpec target_spec = {.format = SDL_AUDIO_S16, .channels = 2, .freq = 44100};
 
     if (wav_spec.format == target_spec.format &&
         wav_spec.channels == target_spec.channels &&
         wav_spec.freq == target_spec.freq) {
-        SDL_Log("No conversion needed, using original data");
+        //SDL_Log("No conversion needed, using original data");
         clip->wav_spec = wav_spec;
         clip->length = wav_length;
 
@@ -233,7 +233,7 @@ int load_audio_clip(const char *filename, audio_clip *clip) {
     Uint8 *cvt_buffer = NULL;
     int cvt_len = 0;
 
-    SDL_Log("Converting audio format...");
+    //SDL_Log("Converting audio format...");
     const bool success = SDL_ConvertAudioSamples(&wav_spec, wav_buffer, (int) wav_length,
                                                  &target_spec, &cvt_buffer, &cvt_len);
 
@@ -247,7 +247,7 @@ int load_audio_clip(const char *filename, audio_clip *clip) {
         return -1;
     }
 
-    SDL_Log("Converted audio: %d bytes -> %d bytes", wav_length, cvt_len);
+    //SDL_Log("Converted audio: %d bytes -> %d bytes", wav_length, cvt_len);
 
     clip->wav_spec = target_spec;
     clip->length = cvt_len;
@@ -276,7 +276,7 @@ void free_audio_clip(audio_clip *clip) {
 }
 
 int load_audio_file(const char *filename, audio_clip *clip) {
-    SDL_Log("Attempting audio file: %s", filename);
+    //SDL_Log("Attempting audio file: %s", filename);
 
     char *file_path = get_asset_path(filename);
     if (!file_path) {
@@ -390,7 +390,7 @@ int generate_saucer_loop(audio_clip *clip) {
         samples[i * 2 + 1] = sample; // Right
     }
 
-    SDL_Log("Saucer loop generated: %u bytes", clip->length);
+    //SDL_Log("Saucer loop generated: %u bytes", clip->length);
     return 0;
 }
 
@@ -398,7 +398,7 @@ void init_saucer_sound(void) {
     if (!saucer_sound_initialized) {
         if (generate_saucer_loop(&saucer_loop_clip) == 0) {
             saucer_sound_initialized = true;
-            SDL_Log("Saucer sound initialized");
+            //SDL_Log("Saucer sound initialized");
         } else {
             SDL_Log("Failed to initialize saucer sound");
         }
@@ -414,7 +414,7 @@ void play_saucer_sound(void) {
         for (int i = 0; i < 10; i++) {
             play_sound_effect(AUDIO_STREAM_SAUCER, saucer_loop_clip);
         }
-        SDL_Log("Started looping saucer sound");
+        //SDL_Log("Started looping saucer sound");
     } else {
         SDL_Log("Failed to start saucer sound - not initialized");
     }
@@ -422,14 +422,14 @@ void play_saucer_sound(void) {
 
 void stop_saucer_sound(void) {
     SDL_ClearAudioStream(state.saucer_stream);
-    SDL_Log("Stopped saucer sound");
+    //SDL_Log("Stopped saucer sound");
 }
 
 void cleanup_saucer_sound(void) {
     if (saucer_sound_initialized) {
         free_audio_clip(&saucer_loop_clip);
         saucer_sound_initialized = false;
-        SDL_Log("Saucer sound cleaned up");
+        //SDL_Log("Saucer sound cleaned up");
     }
 }
 
@@ -464,12 +464,12 @@ void music_start(void) {
     bg_music.next_beat_time = INITIAL_INTERVAL;
     bg_music.is_high_beat = true;
 
-    SDL_Log("Background music started");
+    //SDL_Log("Background music started");
 }
 
 void music_stop(void) {
     bg_music.is_playing = false;
-    SDL_Log("Background music stopped");
+    //SDL_Log("Background music stopped");
 }
 
 void reset_background_music(void) {
@@ -477,7 +477,7 @@ void reset_background_music(void) {
     bg_music.next_beat_time = INITIAL_INTERVAL;
     bg_music.is_high_beat = true;
 
-    SDL_Log("Background music reset to initial tempo");
+    //SDL_Log("Background music reset to initial tempo");
 }
 
 float calculate_current_interval(const float elapsed_time) {
@@ -505,10 +505,10 @@ void music_update(void) {
     if (bg_music.next_beat_time <= 0.0f) {
         if (bg_music.is_high_beat) {
             play_sound_effect(AUDIO_STREAM_MUSIC, audio_clips.bloop_hi);
-            SDL_Log("Playing high beat");
+            //SDL_Log("Playing high beat");
         } else {
             play_sound_effect(AUDIO_STREAM_MUSIC, audio_clips.bloop_lo);
-            SDL_Log("Playing low beat");
+            //SDL_Log("Playing low beat");
         }
 
         bg_music.is_high_beat = !bg_music.is_high_beat;
@@ -516,14 +516,14 @@ void music_update(void) {
         const float current_interval = calculate_current_interval(bg_music.elapsed_time);
         bg_music.next_beat_time = current_interval;
 
-        SDL_Log("Next beat in %.3f seconds (elapsed: %.1fs)", current_interval, bg_music.elapsed_time);
+        //SDL_Log("Next beat in %.3f seconds (elapsed: %.1fs)", current_interval, bg_music.elapsed_time);
     }
 }
 
 void music_cleanup(void) {
     free_audio_clip(&audio_clips.bloop_hi);
     free_audio_clip(&audio_clips.bloop_lo);
-    SDL_Log("Background music cleaned up");
+    //SDL_Log("Background music cleaned up");
 }
 
 float get_current_music_tempo(void) {

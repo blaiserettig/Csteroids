@@ -462,15 +462,15 @@ void render_text(SDL_Renderer *renderer, char c[], v2 pos, const float scale) {
     }
 }
 
-void render_text_3d(SDL_Renderer *renderer, char c[], const v2 pos, const float scale) {
+void render_text_3d(SDL_Renderer *renderer, char c[], const v2 pos, const float scale, const SDL_Color color) {
     const float depth_offset_x = scale * 0.1f;
     const float depth_offset_y = scale * 0.1f;
 
-    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
-    v2 shadow_pos = {pos.x + depth_offset_x, pos.y + depth_offset_y};
+    SDL_SetRenderDrawColor(renderer, (Uint8)fmaxf((float)color.r - 150, 0), (Uint8)fmaxf((float)color.g - 150, 0), (Uint8)fmaxf((float)color.b - 150, 0), color.a);
+    const v2 shadow_pos = {pos.x + depth_offset_x, pos.y + depth_offset_y};
     render_text(renderer, c, shadow_pos, scale);
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     render_text(renderer, c, pos, scale);
 }
 

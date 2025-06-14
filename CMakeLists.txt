@@ -19,6 +19,8 @@ add_executable(main src/main.c
         src/audio.c
         src/audio.h
         src/game_types.h
+        src/shop.c
+        src/shop.h
 )
 
 # Include the SDL3 header directory

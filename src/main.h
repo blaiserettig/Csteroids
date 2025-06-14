@@ -6,10 +6,11 @@
 #include "audio.h"
 #include "button.h"
 #include "game_types.h"
+#include "shop.h"
 #include "util/array_list.h"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 
 #define SPEED 60
 
@@ -81,6 +82,7 @@ typedef struct {
     bool render_stage_text;
     bool should_spawn_next_stage;
     bool pause_state_change;
+    bool shop_state_change;
     ship ship;
     ArrayList *asteroids;
     ArrayList *projectiles;
@@ -91,6 +93,8 @@ typedef struct {
     hyperspace_line hyperspace_lines[100];
     big_saucer big_saucer;
     small_saucer small_saucer;
+    shop shop;
+    int coins;
     float saucer_spawn_time;
     int lives;
     int score;

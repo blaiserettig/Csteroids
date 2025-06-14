@@ -123,8 +123,8 @@ int main(int argc, char *argv[]) {
     state.asteroid_particles = array_list_create(sizeof(death_line));
 
     init_hyperspace();
-
     init_buttons();
+    init_shop();
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_Log("SDL_Init Error: %s", SDL_GetError());
@@ -233,11 +233,25 @@ void enter_pause_menu(void) {
 }
 
 void render_pause_menu(void) {
-
+    for (int i = 0; i < SCREEN_HEIGHT; i ++) {
+        SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 200);
+        SDL_RenderLine(state.renderer, 0, (float)i, (float) SCREEN_WIDTH, (float) i);
+    }
+    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+    render_text_3d_extruded(state.renderer, "PAUSED",
+                            (v2){(float) SCREEN_WIDTH / 2.0f, (float) SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
 }
 
 void exit_pause_menu(void) {
     SDL_Log("EXIT");
+}
+
+void enter_shop(void) {
+
+}
+
+void exit_shop(void) {
+
 }
 
 void start_game(void) {
@@ -292,7 +306,7 @@ void update(void) {
 
     if (state.state == START_MENU) return;
 
-    update_saucer_spawn();
+    if (!global_time.is_paused) update_saucer_spawn();
 
     const bool update_player = state.player_static_timer > 0.0f;
     if (update_player) {
@@ -309,6 +323,7 @@ void update(void) {
 
     if (!state.dead && !update_player && !global_time.is_paused) update_ship();
     update_asteroids();
+    update_shop();
     update_asteroid_destruction_timers();
     update_projectiles();
     update_asteroid_explosion_particles();
@@ -359,16 +374,6 @@ void update(void) {
     if (state.dead) render_spacecraft_explosion(false, false);
     if (state.render_s_saucer) render_spacecraft_explosion(true, true);
     if (state.render_b_saucer) render_spacecraft_explosion(true, false);
-
-    if (state.state == PAUSE_MENU) {
-        for (int i = 0; i < SCREEN_HEIGHT; i ++) {
-            SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 200);
-            SDL_RenderLine(state.renderer, 0, (float)i, (float) SCREEN_WIDTH, (float) i);
-        }
-        SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
-        render_text_3d_extruded(state.renderer, "PAUSED",
-                                (v2){(float) SCREEN_WIDTH / 2.0f, (float) SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
-    }
 
     if (state.draw_lucky) {
         render_text_thick(state.renderer, state.luck_text, (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 75.0f}, 25.0f, 2.0f, 25.0f);
@@ -510,6 +515,7 @@ void reset_state(void) {
     state.draw_lucky = false;
     state.draw_lucky_timer = false;
     state.pause_state_change = false;
+    state.coins = 0;
 }
 
 void start_game_over(void) {
@@ -520,7 +526,7 @@ void start_game_over(void) {
 void render_stage_text(void) {
     char stage_text[32];
     snprintf(stage_text, sizeof(stage_text), "STAGE %d", state.stage);
-    render_text_3d(state.renderer, stage_text, (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
+    render_text_3d(state.renderer, stage_text, (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f, (SDL_Color){255, 255, 255, 255});
 }
 
 Uint32 stop_stage_text_render(void *userdata, SDL_TimerID timerID, Uint32 interval) {
@@ -678,6 +684,9 @@ void handle_input(void) {
                         break;
                     case SDL_SCANCODE_A:
                         state.a = 1;
+                        break;
+                    case SDL_SCANCODE_F:
+                        render_shop();
                         break;
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
