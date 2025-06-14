@@ -107,6 +107,9 @@ void init_buttons(void) {
     button_system_add_default(&state.button_system,
                           (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 48.0f, 128, 64}, "QUIT",
                           end_game, PAUSE_MENU);
+    button_system_add_default(&state.button_system,
+                      (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 400.0f, 128, 64}, "DONE",
+                      exit_shop, SHOP_MENU);
 
 }
 
@@ -246,14 +249,6 @@ void exit_pause_menu(void) {
     SDL_Log("EXIT");
 }
 
-void enter_shop(void) {
-
-}
-
-void exit_shop(void) {
-
-}
-
 void start_game(void) {
     global_time.dt = 0.0f;
     SDL_GetCurrentTime(&global_time.now);
@@ -302,9 +297,14 @@ void update(void) {
                                 (v2){(float) SCREEN_WIDTH / 2.0f, (float) SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
     }
 
+    if (state.state == SHOP_MENU) {
+        update_shop();
+        render_shop();
+    }
+
     button_system_render(&state.button_system, state.renderer);
 
-    if (state.state == START_MENU) return;
+    if (state.state == START_MENU || state.state == SHOP_MENU) return;
 
     if (!global_time.is_paused) update_saucer_spawn();
 
@@ -323,7 +323,6 @@ void update(void) {
 
     if (!state.dead && !update_player && !global_time.is_paused) update_ship();
     update_asteroids();
-    update_shop();
     update_asteroid_destruction_timers();
     update_projectiles();
     update_asteroid_explosion_particles();
@@ -686,7 +685,10 @@ void handle_input(void) {
                         state.a = 1;
                         break;
                     case SDL_SCANCODE_F:
-                        render_shop();
+                        const SDL_TimerID id = SDL_AddTimer(1000, enter_shop, NULL);
+                        if (id == 0) {
+                            SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+                        }
                         break;
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
@@ -921,7 +923,7 @@ void update_hyperspace(void) {
 }
 
 void render_hyperspace(void) {
-    if (state.state == GAME_VIEW || state.state == OVER_MENU || state.state == PAUSE_MENU) {
+    if (state.state != START_MENU) {
         SDL_SetRenderDrawColor(state.renderer, 16, 16, 16, 255);
     } else {
         SDL_SetRenderDrawColor(state.renderer, 64, 64, 64, 255);

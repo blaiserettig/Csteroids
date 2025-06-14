@@ -3,6 +3,7 @@
 #define SHOP_H
 #include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_rect.h"
+#include "SDL3/SDL_timer.h"
 
 typedef struct {
     SDL_FRect outer_rect;
@@ -27,10 +28,15 @@ typedef struct {
 
     float item_spacing;
     float padding;
+
+    bool render_ship;
+    bool render_items[3];
 } shop;
 
 void init_shop(void);
 void update_shop(void);
 void render_shop(void);
+Uint32 enter_shop(void *userdata, SDL_TimerID timerID, Uint32 interval);
+void exit_shop(void);
 
 #endif //SHOP_H
