@@ -437,7 +437,7 @@ letter LETTERS[26] = {
 };
 
 void render_text(SDL_Renderer *renderer, char c[], const v2 pos, const float scale) {
-    const float line_height = scale * 1.3f;
+    const float line_height = scale * 1.4f;
 
     int line_count = 1;
     int current_line_length = 0;

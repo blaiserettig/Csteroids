@@ -1,13 +1,348 @@
 
 #include "shop.h"
 
-#include <stdio.h>
-
 #include "main.h"
 #include "text.h"
 
 #include "SDL3/SDL_render.h"
 #include "util/math_ext.h"
+
+void draw_speed_boost_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float size = rect->w * 0.8f;
+
+    // arrow pointing right
+    SDL_SetRenderDrawColor(renderer, 100, 200, 255, 255);
+
+    // arrow shaft
+    const float shaft_y = cy;
+    const float shaft_start_x = cx - size * 0.3f;
+    const float shaft_end_x = cx + size * 0.2f;
+    const float shaft_thickness = size * 0.08f;
+
+    const SDL_FRect shaft = {
+        shaft_start_x, shaft_y - shaft_thickness,
+        shaft_end_x - shaft_start_x, shaft_thickness * 2
+    };
+    SDL_RenderFillRect(renderer, &shaft);
+
+    // arrow head
+    const float head_size = size * 0.2f;
+    for (int i = 0; i < (int)head_size; i++) {
+        const float line_x = shaft_end_x + (float)i;
+        const float line_top = shaft_y - head_size + (float)i;
+        const float line_bottom = shaft_y + head_size - (float)i;
+        SDL_RenderLine(renderer, line_x, line_top, line_x, line_bottom);
+    }
+
+    // motion lines
+    SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
+    for (int i = 0; i < 3; i++) {
+        float const line_x = cx - size * 0.4f - (float)i * size * 0.05f;
+        SDL_RenderLine(renderer, line_x, cy - size * 0.1f, line_x, cy + size * 0.1f);
+    }
+}
+
+void draw_extra_cannon_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float size = rect->w * 0.8f;
+
+    SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
+
+    // two cannons
+    for (int cannon = 0; cannon < 2; cannon++) {
+        const float offset_y = cannon == 0 ? -size * 0.15f : size * 0.15f;
+
+        // barrel
+        SDL_FRect barrel = {
+            cx - size * 0.3f, cy + offset_y - size * 0.05f,
+            size * 0.5f, size * 0.1f
+        };
+        SDL_RenderFillRect(renderer, &barrel);
+
+        // base
+        SDL_FRect base = {
+            cx - size * 0.35f, cy + offset_y - size * 0.08f,
+            size * 0.15f, size * 0.16f
+        };
+        SDL_RenderFillRect(renderer, &base);
+    }
+
+    // Projectiles
+    SDL_SetRenderDrawColor(renderer, 255, 255, 100, 255);
+    for (int i = 0; i < 2; i++) {
+        const float offset_y = i == 0 ? -size * 0.15f : size * 0.15f;
+        SDL_FRect projectile = {
+            cx + size * 0.25f, cy + offset_y - size * 0.03f,
+            size * 0.06f, size * 0.06f
+        };
+        SDL_RenderFillRect(renderer, &projectile);
+    }
+}
+
+void draw_weighted_dice_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float size = rect->w * 0.6f;
+
+    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+    const SDL_FRect dice = {
+        cx - size * 0.5f, cy - size * 0.5f,
+        size, size
+    };
+    SDL_RenderFillRect(renderer, &dice);
+
+    SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
+    SDL_RenderRect(renderer, &dice);
+
+    SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
+    const float dot_size = size * 0.15f;
+    const float spacing = size * 0.22f;
+
+    // L
+    const SDL_FRect dot1 = {cx - spacing - dot_size * 0.5f, cy - spacing - dot_size * 0.5f, dot_size, dot_size};
+    const SDL_FRect dot2 = {cx - spacing - dot_size * 0.5f, cy - dot_size * 0.5f, dot_size, dot_size};
+    const SDL_FRect dot3 = {cx - spacing - dot_size * 0.5f, cy + spacing - dot_size * 0.5f, dot_size, dot_size};
+
+    // R
+    const SDL_FRect dot4 = {cx + spacing - dot_size * 0.5f, cy - spacing - dot_size * 0.5f, dot_size, dot_size};
+    const SDL_FRect dot5 = {cx + spacing - dot_size * 0.5f, cy - dot_size * 0.5f, dot_size, dot_size};
+    const SDL_FRect dot6 = {cx + spacing - dot_size * 0.5f, cy + spacing - dot_size * 0.5f, dot_size, dot_size};
+
+    SDL_RenderFillRect(renderer, &dot1);
+    SDL_RenderFillRect(renderer, &dot2);
+    SDL_RenderFillRect(renderer, &dot3);
+    SDL_RenderFillRect(renderer, &dot4);
+    SDL_RenderFillRect(renderer, &dot5);
+    SDL_RenderFillRect(renderer, &dot6);
+
+    SDL_SetRenderDrawColor(renderer, 255, 200, 50, 255);
+    const SDL_FRect weight = {
+        cx - size * 0.15f, cy + size * 0.25f,
+        size * 0.3f, size * 0.15f
+    };
+    SDL_RenderFillRect(renderer, &weight);
+}
+
+void draw_piercing_projectiles_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float size = rect->w * 0.8f;
+
+    SDL_SetRenderDrawColor(renderer, 100, 70, 50, 255);
+
+    const SDL_FRect asteroidl = {
+        cx - size * 0.35f, cy - size * 0.2f,
+        size * 0.25f, size * 0.4f
+    };
+    SDL_RenderFillRect(renderer, &asteroidl);
+
+    const SDL_FRect asteroidr = {
+        cx + size * 0.1f, cy - size * 0.15f,
+        size * 0.3f, size * 0.3f
+    };
+    SDL_RenderFillRect(renderer, &asteroidr);
+
+    // trail
+    SDL_SetRenderDrawColor(renderer, 255, 255, 100, 255);
+    const float trail_thickness = size * 0.06f;
+    const SDL_FRect trail = {
+        cx - size * 0.4f, cy - trail_thickness * 0.5f,
+        size * 0.8f, trail_thickness
+    };
+    SDL_RenderFillRect(renderer, &trail);
+
+    // head
+    SDL_SetRenderDrawColor(renderer, 255, 150, 50, 255);
+    const SDL_FRect projectile = {
+        cx + size * 0.3f, cy - size * 0.05f,
+        size * 0.1f, size * 0.1f
+    };
+    SDL_RenderFillRect(renderer, &projectile);
+
+    // sparkles
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    for (int i = 0; i < 4; i++) {
+        const float spark_x = cx - size * 0.2f + (float)i * size * 0.15f;
+        SDL_RenderLine(renderer, spark_x - 3, cy, spark_x + 3, cy);
+        SDL_RenderLine(renderer, spark_x, cy - 3, spark_x, cy + 3);
+    }
+}
+
+void draw_spare_parts_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float size = rect->w * 0.7f;
+
+    SDL_SetRenderDrawColor(renderer, 220, 50, 50, 255);
+
+    const float heart_size = size * 0.8f;
+    const float half_heart = heart_size * 0.5f;
+
+    const SDL_FRect left_lobe = {
+        cx - heart_size * 0.5f, cy - heart_size * 0.3f,
+        half_heart, half_heart
+    };
+    SDL_RenderFillRect(renderer, &left_lobe);
+
+    const SDL_FRect right_lobe = {
+        cx, cy - heart_size * 0.3f,
+        half_heart, half_heart
+    };
+    SDL_RenderFillRect(renderer, &right_lobe);
+
+    // bottom triangle
+    const float triangle_height = heart_size * 0.6f;
+    for (int i = 0; i < (int)triangle_height; i++) {
+        const float y = cy + heart_size * 0.2f + (float)i;
+        const float width = triangle_height - (float)i;
+        const float x_start = cx - width * 0.5f;
+        SDL_RenderLine(renderer, x_start, y, x_start + width, y);
+    }
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    const float plus_size = size * 0.2f;
+    const float plus_thickness = size * 0.04f;
+
+    const SDL_FRect h_line = {
+        cx + size * 0.2f, cy + size * 0.2f - plus_thickness * 0.5f,
+        plus_size, plus_thickness
+    };
+    SDL_RenderFillRect(renderer, &h_line);
+
+    const SDL_FRect v_line = {
+        cx + size * 0.3f - plus_thickness * 0.5f, cy + size * 0.1f,
+        plus_thickness, plus_size
+    };
+    SDL_RenderFillRect(renderer, &v_line);
+}
+
+void draw_dynamite_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float size = rect->w * 0.7f;
+
+    SDL_SetRenderDrawColor(renderer, 200, 50, 50, 255);
+    const SDL_FRect stick = {
+        cx - size * 0.15f, cy - size * 0.4f,
+        size * 0.3f, size * 0.6f
+    };
+    SDL_RenderFillRect(renderer, &stick);
+
+    SDL_SetRenderDrawColor(renderer, 100, 50, 0, 255);
+    const SDL_FRect fuse = {
+        cx - size * 0.02f, cy - size * 0.5f,
+        size * 0.04f, size * 0.2f
+    };
+    SDL_RenderFillRect(renderer, &fuse);
+
+    SDL_SetRenderDrawColor(renderer, 255, 200, 50, 255);
+    const SDL_FRect spark = {
+        cx - size * 0.03f, cy - size * 0.55f,
+        size * 0.06f, size * 0.06f
+    };
+    SDL_RenderFillRect(renderer, &spark);
+
+    SDL_SetRenderDrawColor(renderer, 255, 150, 50, 255);
+    for (int i = 0; i < 8; i++) {
+        const float angle = (float)i * 45.0f * ((float)M_PI / 180.0f);
+        const float explosion_radius = size * 0.4f;
+        const float end_x = cx + cosf(angle) * explosion_radius;
+        const float end_y = cy + sinf(angle) * explosion_radius;
+
+        // rays
+        for (int j = 0; j < 3; j++) {
+            const float offset = ((float)j - 1) * 2;
+            SDL_RenderLine(renderer,
+                cx + offset, cy + offset,
+                end_x + offset, end_y + offset);
+        }
+    }
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    const SDL_FRect label = {
+        cx - size * 0.1f, cy - size * 0.1f,
+        size * 0.2f, size * 0.1f
+    };
+    SDL_RenderRect(renderer, &label);
+}
+
+void draw_safe_warp_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float size = rect->w * 0.8f;
+
+    SDL_SetRenderDrawColor(renderer, 100, 50, 200, 255);
+
+    // concentric circles
+    const int num_rings = 5;
+    for (int ring = 0; ring < num_rings; ring++) {
+        const float ring_size = size * (0.8f - (float)ring * 0.15f);
+
+        // Approximate circle with lines
+        for (int angle = 0; angle < 360; angle += 10) {
+            const float rad = (float)angle * ((float)M_PI / 180.0f);
+            const float x1 = cx + cosf(rad) * (ring_size * 0.5f);
+            const float y1 = cy + sinf(rad) * (ring_size * 0.5f);
+            const float x2 = cx + cosf(rad + 0.1f) * (ring_size * 0.5f);
+            const float y2 = cy + sinf(rad + 0.1f) * (ring_size * 0.5f);
+
+            SDL_RenderLine(renderer, x1, y1, x2, y2);
+        }
+    }
+
+    SDL_SetRenderDrawColor(renderer, 50, 255, 50, 255);
+
+    const float shield_size = size * 0.3f;
+    const SDL_FRect shield_body = {
+        cx - shield_size * 0.5f, cy - shield_size * 0.4f,
+        shield_size, shield_size * 0.7f
+    };
+    SDL_RenderFillRect(renderer, &shield_body);
+
+    const float point_height = shield_size * 0.3f;
+    for (int i = 0; i < (int)point_height; i++) {
+        const float y = cy + shield_size * 0.3f + (float)i;
+        const float width = point_height - (float)i;
+        const float x_start = cx - width * 0.5f;
+        SDL_RenderLine(renderer, x_start, y, x_start + width, y);
+    }
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    const float check_size = shield_size * 0.4f;
+    SDL_RenderLine(renderer,
+        cx - check_size * 0.2f, cy,
+        cx, cy + check_size * 0.2f);
+    SDL_RenderLine(renderer,
+        cx, cy + check_size * 0.2f,
+        cx + check_size * 0.3f, cy - check_size * 0.2f);
+}
+
+void render_shop_item_icon(SDL_Renderer *renderer, const shop_item_container *container) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderFillRect(renderer, &container->icon_rect);
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderRect(renderer, &container->icon_rect);
+
+    if (strcmp(container->item.title, "SPEED BOOST") == 0) {
+        draw_speed_boost_icon(renderer, &container->icon_rect);
+    } else if (strcmp(container->item.title, "EXTRA CANNON") == 0) {
+        draw_extra_cannon_icon(renderer, &container->icon_rect);
+    } else if (strcmp(container->item.title, "WEIGHTED DICE") == 0) {
+        draw_weighted_dice_icon(renderer, &container->icon_rect);
+    } else if (strcmp(container->item.title, "PIERCING PROJECTILES") == 0) {
+        draw_piercing_projectiles_icon(renderer, &container->icon_rect);
+    } else if (strcmp(container->item.title, "SPARE PARTS") == 0) {
+        draw_spare_parts_icon(renderer, &container->icon_rect);
+    } else if (strcmp(container->item.title, "DYNAMITE") == 0) {
+        draw_dynamite_icon(renderer, &container->icon_rect);
+    } else if (strcmp(container->item.title, "SAFE WARP") == 0) {
+        draw_safe_warp_icon(renderer, &container->icon_rect);
+    }
+}
 
 void shop_item_init(void) {
     state.shop.items_list[0] = (shop_item){
@@ -196,6 +531,8 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
             SDL_RenderRect(renderer, &container->icon_rect);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderFillRect(renderer, &container->icon_rect);
+
+            render_shop_item_icon(renderer, container);
 
             // title area
             //SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
