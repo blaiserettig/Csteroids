@@ -6,24 +6,30 @@
 #include "SDL3/SDL_timer.h"
 
 typedef struct {
-    SDL_FRect outer_rect;
-    SDL_FRect icon_rect;
-    SDL_FRect title_rect;
-    SDL_FRect desc_rect;
-
     char title[32];
     char description[128];
     int price;
-    bool is_purchased;
     bool is_affordable;
+    bool is_purchased;
+    bool included;
+
     SDL_Color bg_color;
     SDL_Color text_color;
 } shop_item;
 
 typedef struct {
+    SDL_FRect outer_rect;
+    SDL_FRect icon_rect;
+    SDL_FRect title_rect;
+    SDL_FRect desc_rect;
+    shop_item item;
+} shop_item_container;
+
+typedef struct {
     SDL_FRect outer_ship_rect;
     SDL_FRect inner_ship_rect;
-    shop_item items[3];
+    shop_item_container containers[3];
+    shop_item items_list[7];
     int item_count;
 
     float item_spacing;
@@ -31,6 +37,7 @@ typedef struct {
 
     bool render_ship;
     bool render_items[3];
+    bool init;
 } shop;
 
 void init_shop(void);
