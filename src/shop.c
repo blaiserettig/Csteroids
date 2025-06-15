@@ -30,7 +30,7 @@ void shop_item_init(void) {
     };
     state.shop.items_list[3] = (shop_item){
         .title = "PIERCING PROJECTILES",
-        .description = "PROJECTILES PASS THROUGH ASTEROIDS AND CAN HIT MULTIPLE TIMES",
+        .description = "PROJECTILES PASS THROUGH\nASTEROIDS AND CAN HIT MULTIPLE TIMES",
         .price = 10,
         .included = false
     };
@@ -42,13 +42,13 @@ void shop_item_init(void) {
     };
     state.shop.items_list[5] = (shop_item){
         .title = "DYNAMITE",
-        .description = "CHAIN ASTEROIDS SPAWN 2X MORE FREQUENTLY",
+        .description = "CHAIN ASTEROIDS SPAWN\n2X MORE FREQUENTLY",
         .price = 5,
         .included = false
     };
     state.shop.items_list[6] = (shop_item){
         .title = "SAFE WARP",
-        .description = "HYPERSPACE NEVER SPAWNS YOU INSIDE ASTEROIDS",
+        .description = "HYPERSPACE NEVER SPAWNS\nYOU INSIDE ASTEROIDS",
         .price = 10,
         .included = false
     };

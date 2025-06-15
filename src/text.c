@@ -436,32 +436,74 @@ letter LETTERS[26] = {
     }
 };
 
-void render_text(SDL_Renderer *renderer, char c[], v2 pos, const float scale) {
-    const float x_offset = ((float) strlen(c) * scale) / 2.0f;
-    const float y_offset = scale / 2.0f;
-    pos.x -= x_offset;
-    pos.y -= y_offset;
+void render_text(SDL_Renderer *renderer, char c[], const v2 pos, const float scale) {
+    const float line_height = scale * 1.3f;
+
+    int line_count = 1;
+    int current_line_length = 0;
+    int max_line_length = 0;
+
     for (int i = 0; i < strlen(c); i++) {
-        if (isalpha(c[i]) != 0) {
-            const char upper = (char) toupper(c[i]);
-            const int k = upper - 'A';
-            for (int j = 0; j < LETTERS[k].count - 1; j++) {
-                SDL_RenderLine(renderer, pos.x + LETTERS[k].points[j].x * scale, pos.y + LETTERS[k].points[j].y * scale,
-                               pos.x + LETTERS[k].points[j + 1].x * scale, pos.y + LETTERS[k].points[j + 1].y * scale);
+        if (c[i] == '\n') {
+            line_count++;
+            if (current_line_length > max_line_length) {
+                max_line_length = current_line_length;
             }
-        } else if (isdigit(c[i]) != 0) {
-            for (int j = 0; j < NUMBERS[c[i] - '0'].count - 1; j++) {
-                SDL_RenderLine(renderer, pos.x + NUMBERS[c[i] - '0'].points[j].x * scale,
-                               pos.y + NUMBERS[c[i] - '0'].points[j].y * scale,
-                               pos.x + NUMBERS[c[i] - '0'].points[j + 1].x * scale,
-                               pos.y + NUMBERS[c[i] - '0'].points[j + 1].y * scale);
-            }
-        } else if (isspace(c[i]) != 0) {
+            current_line_length = 0;
+        } else {
+            current_line_length++;
         }
-        pos.x += scale;
+    }
+
+    const float total_text_height = (float)line_count * line_height;
+    float current_y = pos.y - total_text_height / 2.0f + line_height / 2.0f;
+
+    int current_pos = 0;
+
+    while (current_pos <= strlen(c)) {
+        int line_end = current_pos;
+        while (line_end < strlen(c) && c[line_end] != '\n') {
+            line_end++;
+        }
+
+        int line_length = 0;
+        for (int i = current_pos; i < line_end; i++) {
+            line_length++;
+        }
+
+        float line_x = pos.x - (float)line_length * scale / 2.0f;
+
+        for (int i = current_pos; i < line_end; i++) {
+            if (isalpha(c[i]) != 0) {
+                const char upper = (char) toupper(c[i]);
+                const int k = upper - 'A';
+                for (int j = 0; j < LETTERS[k].count - 1; j++) {
+                    SDL_RenderLine(renderer,
+                                   line_x + LETTERS[k].points[j].x * scale,
+                                   current_y + LETTERS[k].points[j].y * scale,
+                                   line_x + LETTERS[k].points[j + 1].x * scale,
+                                   current_y + LETTERS[k].points[j + 1].y * scale);
+                }
+            } else if (isdigit(c[i]) != 0) {
+                for (int j = 0; j < NUMBERS[c[i] - '0'].count - 1; j++) {
+                    SDL_RenderLine(renderer,
+                                   line_x + NUMBERS[c[i] - '0'].points[j].x * scale,
+                                   current_y + NUMBERS[c[i] - '0'].points[j].y * scale,
+                                   line_x + NUMBERS[c[i] - '0'].points[j + 1].x * scale,
+                                   current_y + NUMBERS[c[i] - '0'].points[j + 1].y * scale);
+                }
+            }
+            line_x += scale;
+        }
+
+        current_y += line_height;
+        current_pos = line_end + 1;
+
+        if (line_end >= strlen(c)) {
+            break;
+        }
     }
 }
-
 void render_text_3d(SDL_Renderer *renderer, char c[], const v2 pos, const float scale, const SDL_Color color) {
     const float depth_offset_x = scale * 0.1f;
     const float depth_offset_y = scale * 0.1f;
