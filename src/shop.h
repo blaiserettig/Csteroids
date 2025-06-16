@@ -28,6 +28,7 @@ typedef struct {
 typedef struct {
     SDL_FRect outer_ship_rect;
     SDL_FRect inner_ship_rect;
+    float ship_rotation;
     shop_item_container containers[3];
     shop_item items_list[7];
     int item_count;

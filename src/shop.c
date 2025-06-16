@@ -3,9 +3,101 @@
 
 #include "main.h"
 #include "text.h"
+#include "util/v3.h"
 
 #include "SDL3/SDL_render.h"
 #include "util/math_ext.h"
+
+void shop_update_ship_preview(shop *s, const float delta_time) {
+    static float rotation = 0.0f;
+    rotation += delta_time * 2.0f;
+
+    if (rotation > 2.0f * M_PI) {
+        rotation -= 2.0f * (float)M_PI;
+    }
+    s->ship_rotation = rotation;
+}
+
+v3 ship_3d_vertices[] = {
+    {0, 15, 5},    // nose tip front
+    {-8, -15, 5},  //left wing tip front
+    {-2, -12, 5},  // left engine mount front
+    {0, -8, 5},    // center back front
+    {2, -12, 5},   // right engine mount front
+    {8, -15, 5},   // right wing tip front
+
+    {0, 15, -5},   // nose tip back
+    {-8, -15, -5}, // left wing tip back
+    {-2, -12, -5}, //left engine mount back
+    {0, -8, -5},   //center back back
+    {2, -12, -5},  // right engine mount back
+    {8, -15, -5},  // right wing tip back
+};
+
+typedef struct {
+    int start, end;
+} edge;
+
+edge ship_3d_edges[] = {
+    // front
+    {0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 0},
+
+    // back
+    {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 6},
+
+    // connect front-back
+    {0, 6}, {1, 7}, {2, 8}, {3, 9}, {4, 10}, {5, 11}
+};
+
+void render_3d_wireframe_ship(SDL_Renderer *renderer, const SDL_FRect *ship_rect, const float rotation_angle) {
+    const int num_vertices = sizeof(ship_3d_vertices) / sizeof(ship_3d_vertices[0]);
+    const int num_edges = sizeof(ship_3d_edges) / sizeof(ship_3d_edges[0]);
+
+    const float center_x = ship_rect->x + ship_rect->w * 0.5f;
+    const float center_y = ship_rect->y + ship_rect->h * 0.5f;
+
+    const float scale = fminf(ship_rect->w, ship_rect->h) * 0.012f;
+
+    v2 screen_points[num_vertices];
+
+    for (int i = 0; i < num_vertices; i++) {
+        const v3 rotated = rotate_3d_y(ship_3d_vertices[i], rotation_angle);
+
+        const v2 projected = project_3d_to_2d(rotated, 80.0f);
+
+        screen_points[i].x = center_x + projected.x * scale;
+        screen_points[i].y = center_y + projected.y * scale;
+    }
+
+    SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+
+    for (int i = 0; i < num_edges; i++) {
+        const int start_idx = ship_3d_edges[i].start;
+        const int end_idx = ship_3d_edges[i].end;
+
+        SDL_RenderLine(renderer,
+                      screen_points[start_idx].x, screen_points[start_idx].y,
+                      screen_points[end_idx].x, screen_points[end_idx].y);
+    }
+
+    //depth cueing
+    SDL_SetRenderDrawColor(renderer, 0, 180, 180, 255);
+
+    for (int i = 0; i < num_edges; i++) {
+        const int start_idx = ship_3d_edges[i].start;
+        const int end_idx = ship_3d_edges[i].end;
+
+        const v3 start_rotated = rotate_3d_y(ship_3d_vertices[start_idx], rotation_angle);
+        const v3 end_rotated = rotate_3d_y(ship_3d_vertices[end_idx], rotation_angle);
+        const float avg_z = (start_rotated.z + end_rotated.z) * 0.5f;
+
+        if (avg_z < -2.0f) {
+            SDL_RenderLine(renderer,
+                          screen_points[start_idx].x, screen_points[start_idx].y,
+                          screen_points[end_idx].x, screen_points[end_idx].y);
+        }
+    }
+}
 
 void draw_speed_boost_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
     const float cx = rect->x + rect->w * 0.5f;
@@ -563,10 +655,12 @@ void init_shop(void) {
 
 void update_shop(void) {
     shop_update_affordability(&state.shop, state.coins);
+    shop_update_ship_preview(&state.shop, (float)global_time.dt);
 }
 
 void render_shop(void) {
     shop_render(&state.shop, state.renderer);
+    render_3d_wireframe_ship(state.renderer, &state.shop.inner_ship_rect, state.shop.ship_rotation);
 }
 
 Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
