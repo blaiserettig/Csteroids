@@ -32,6 +32,7 @@ typedef struct {
     shop_item_container containers[3];
     shop_item items_list[7];
     int item_count;
+    size_t button_start_idx;
 
     float item_spacing;
     float padding;

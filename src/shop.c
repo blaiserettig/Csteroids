@@ -585,6 +585,8 @@ void shop_init(shop *s, const float screen_width, const float screen_height) {
     s->padding = 50.0f;
     s->item_spacing = 15.0f;
 
+    s->button_start_idx = 0;
+
     const float scale = 0.75f;
     const float scaled_width = (screen_width - s->padding * 2) * scale;
     const float scaled_height = (screen_height - s->padding * 2) * scale;
@@ -725,16 +727,21 @@ Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
         state.state = SHOP_MENU;
     }
     if (!state.shop.item_button_init) {
+        state.shop.button_start_idx = state.button_system.count;
         for (int i = 0; i < state.shop.item_count; i++) {
             const button b = {
                 .draw_rect = state.shop.containers[i].outer_rect, .btn_color = (SDL_Color){0, 0, 0, 0},
                 .label_color = (SDL_Color){0, 0, 0, 0}, .hover_color = (SDL_Color){0, 255, 255, 10},
-                .is_hovered = false, .was_clicked = false, .on_click = shop_item_click_callback, .visible = true,
+                .is_hovered = false, .was_clicked = false, .on_click = shop_item_click_callback, .visible = false,
                 .label = "", .display_state = SHOP_MENU
             };
             button_system_add_custom(&state.button_system, b);
         }
         state.shop.item_button_init = true;
+    } else {
+        state.button_system.buttons[state.shop.button_start_idx].visible = false;
+        state.button_system.buttons[state.shop.button_start_idx + 1].visible = false;
+        state.button_system.buttons[state.shop.button_start_idx + 2].visible = false;
     }
     if (!state.shop.render_ship) {
         state.shop.render_ship = true;
@@ -750,6 +757,10 @@ Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
     }
     if (!state.shop.render_items[2]) {
         state.shop.render_items[2] = true;
+
+        state.button_system.buttons[state.shop.button_start_idx].visible = true;
+        state.button_system.buttons[state.shop.button_start_idx + 1].visible = true;
+        state.button_system.buttons[state.shop.button_start_idx + 2].visible = true;
         return 0;
     }
     return 0;
@@ -764,5 +775,10 @@ void exit_shop(void) {
     state.shop.render_items[1] = false;
     state.shop.render_items[2] = false;
     state.shop.cycle_init = false;
+
+    state.button_system.buttons[state.shop.button_start_idx].visible = false;
+    state.button_system.buttons[state.shop.button_start_idx + 1].visible = false;
+    state.button_system.buttons[state.shop.button_start_idx + 2].visible = false;
+
     state.state = GAME_VIEW;
 }

@@ -79,7 +79,7 @@ typedef struct {
     SDL_AudioStream *saucer_stream;
     SDL_AudioStream *music_stream;
     SDL_AudioStream *sfx_stream;
-    SDL_Texture* intermediate_texture;
+    SDL_Texture *intermediate_texture;
     bool quit;
     bool dead;
     bool spawn;
@@ -126,7 +126,7 @@ extern game_state state;
 
 extern g_time global_time;
 
-void apply_screen_effects(SDL_Texture* source_texture, SDL_Renderer* renderer);
+void apply_screen_effects(SDL_Texture *source_texture, SDL_Renderer *renderer);
 
 void render_ship();
 
@@ -162,7 +162,7 @@ Uint32 stop_saucer_exp_render(void *userdata, SDL_TimerID timerID, Uint32 interv
 
 Uint32 stop_luck_text_render(void *userdata, SDL_TimerID timerID, Uint32 interval);
 
-char* get_asset_path(const char* filename);
+char *get_asset_path(const char *filename);
 
 void reset_game(void);
 
@@ -228,7 +228,7 @@ void add_ship_death_lines(float scale);
 
 void add_saucer_death_lines(bool small, float scale);
 
-void add_particles(const v2 pos, const int n, float r,  float g, float b);
+void add_particles(const v2 pos, const int n, float r, float g, float b);
 
 void add_projectile(v2 pos, bool from_ship, bool from_small_saucer);
 

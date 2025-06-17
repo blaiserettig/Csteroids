@@ -113,11 +113,13 @@ void button_system_render(const button_system *bs, SDL_Renderer *renderer) {
 
 void button_system_show_buttons_for_state(const button_system *bs, const enum state game_state) {
     for (size_t i = 0; i < bs->count; i++) {
+        if (strcmp(bs->buttons[i].label, "") == 0) continue;
         bs->buttons[i].visible = false;
     }
 
     for (size_t i = 0; i < bs->count; i++) {
         button *btn = &bs->buttons[i];
+        if (strcmp(btn->label, "") == 0) continue;
         if (game_state == btn->display_state) {
             btn->visible = true;
         }
