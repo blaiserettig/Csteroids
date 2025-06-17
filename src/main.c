@@ -30,6 +30,13 @@
 #define M_TAU (M_PI * 2)
 #define MAX_SFX_STREAMS 8
 
+float ADDED_SPEED = 1.0f;
+int FIRE_STREAMS = 1;
+float LUCKY_CHANCE = 1.0f;
+float CHAIN_CHANCE = 1.0f;
+bool HAS_SAFE_WARP = false;
+bool HAS_PIERCING = false;
+
 game_state state = {0};
 
 g_time global_time = {0};
@@ -514,6 +521,13 @@ void reset_state(void) {
     state.draw_lucky_timer = false;
     state.pause_state_change = false;
     state.coins = 0;
+
+    ADDED_SPEED = 1.0f;
+    FIRE_STREAMS = 1;
+    LUCKY_CHANCE = 1.0f;
+    CHAIN_CHANCE = 1.0f;
+    HAS_SAFE_WARP = false;
+    HAS_PIERCING = false;
 }
 
 void start_game_over(void) {
@@ -551,8 +565,8 @@ void on_ship_hit(void) {
 }
 
 void update_saucer(void) {
-    state.small_saucer.pos.x = wrap0f(state.small_saucer.pos.x + state.small_saucer.vel.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
-    state.small_saucer.pos.y = wrap0f(state.small_saucer.pos.y + state.small_saucer.vel.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
+    state.small_saucer.pos.x = wrap0f(state.small_saucer.pos.x + state.small_saucer.vel.x * DEFAULT_SPEED * (float)global_time.dt, SCREEN_WIDTH);
+    state.small_saucer.pos.y = wrap0f(state.small_saucer.pos.y + state.small_saucer.vel.y * DEFAULT_SPEED * (float)global_time.dt, SCREEN_HEIGHT);
     if (state.s_saucer) {
         static float shoot_time = 0.0f;
         shoot_time += (float) global_time.dt;
@@ -569,8 +583,8 @@ void update_saucer(void) {
         }
     }
 
-    state.big_saucer.pos.x = wrap0f(state.big_saucer.pos.x + state.big_saucer.vel.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
-    state.big_saucer.pos.y = wrap0f(state.big_saucer.pos.y + state.big_saucer.vel.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
+    state.big_saucer.pos.x = wrap0f(state.big_saucer.pos.x + state.big_saucer.vel.x * DEFAULT_SPEED * (float)global_time.dt, SCREEN_WIDTH);
+    state.big_saucer.pos.y = wrap0f(state.big_saucer.pos.y + state.big_saucer.vel.y * DEFAULT_SPEED * (float)global_time.dt, SCREEN_HEIGHT);
     if (state.b_saucer) {
         static float time = 0.0f;
         time += (float) global_time.dt;
@@ -589,8 +603,12 @@ void update_saucer(void) {
 }
 
 void update_ship(void) {
-    state.ship.position.x = wrap0f(state.ship.position.x + state.ship.velocity.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
-    state.ship.position.y = wrap0f(state.ship.position.y + state.ship.velocity.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
+    state.ship.position.x = wrap0f(
+        state.ship.position.x + state.ship.velocity.x * DEFAULT_SPEED * ADDED_SPEED * (float) global_time.dt,
+        SCREEN_WIDTH);
+    state.ship.position.y = wrap0f(
+        state.ship.position.y + state.ship.velocity.y * DEFAULT_SPEED * ADDED_SPEED * (float) global_time.dt,
+        SCREEN_HEIGHT);
 
     const float radians = state.ship.angle * ((float) M_PI / 180.0f);
     if (state.w) {
@@ -618,9 +636,10 @@ void update_ship(void) {
 void update_projectiles(void) {
     for (size_t i = 0; i < array_list_size(state.projectiles); i++) {
         projectile *p = array_list_get(state.projectiles, i);
-        p->pos.x = wrap0f(p->pos.x + p->vel.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
-        p->pos.y = wrap0f(p->pos.y + p->vel.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
+        p->pos.x = wrap0f(p->pos.x + p->vel.x * DEFAULT_SPEED * (float)global_time.dt, SCREEN_WIDTH);
+        p->pos.y = wrap0f(p->pos.y + p->vel.y * DEFAULT_SPEED * (float)global_time.dt, SCREEN_HEIGHT);
         p->ttl -= (float) global_time.dt;
+        p->cooldown -= (float) global_time.dt;
         if (p->ttl < 0) array_list_remove(state.projectiles, i);
     }
 }
@@ -628,8 +647,8 @@ void update_projectiles(void) {
 void update_asteroid_explosion_particles(void) {
     for (size_t i = 0; i < array_list_size(state.asteroid_particles); i++) {
         death_line *d = array_list_get(state.asteroid_particles, i);
-        d->p1 = v2_sum(d->p1, v2_scale(v2_scale(d->vel, SPEED), (float)global_time.dt));
-        d->p2 = v2_sum(d->p2, v2_scale(v2_scale(d->vel, SPEED), (float)global_time.dt));
+        d->p1 = v2_sum(d->p1, v2_scale(v2_scale(d->vel, DEFAULT_SPEED), (float)global_time.dt));
+        d->p2 = v2_sum(d->p2, v2_scale(v2_scale(d->vel, DEFAULT_SPEED), (float)global_time.dt));
         d->ttl -= (float) global_time.dt;
         if (d->ttl < 0) array_list_remove(state.asteroid_particles, i);
     }
@@ -733,8 +752,8 @@ void render_spacecraft_explosion(const bool saucer, const bool small) {
         death_line d = saucer ? state.saucer_death_lines[i] : state.ship_death_lines[i];
         if (d.ttl > 0.0f) SDL_RenderLine(state.renderer, pos.x + d.p1.x, pos.y + d.p1.y, pos.x + d.p2.x,
                                          pos.y + d.p2.y);
-        d.p1 = v2_sum(d.p1, v2_scale(v2_scale(d.vel, SPEED), (float)global_time.dt));
-        d.p2 = v2_sum(d.p2, v2_scale(v2_scale(d.vel, SPEED), (float)global_time.dt));
+        d.p1 = v2_sum(d.p1, v2_scale(v2_scale(d.vel, DEFAULT_SPEED), (float)global_time.dt));
+        d.p2 = v2_sum(d.p2, v2_scale(v2_scale(d.vel, DEFAULT_SPEED), (float)global_time.dt));
         d.ttl -= (float) global_time.dt;
         if (saucer) {
             state.saucer_death_lines[i] = d;
@@ -946,7 +965,7 @@ void init_hyperspace(void) {
 
 void projectile_collision_check(void) {
     for (int i = 0; i < array_list_size(state.projectiles); i++) {
-        const projectile *p = array_list_get(state.projectiles, i);
+        projectile *p = array_list_get(state.projectiles, i);
 
         //Projectile vs. ship collision
         if (v2_dist_sqr(p->pos, state.ship.position) < 150 && p->ttl < 2.25f && !state.dead && state.player_invincible_timer <= 0.05f) {
@@ -974,8 +993,15 @@ void projectile_collision_check(void) {
             if (v2_dist_sqr(p->pos, a->position) < check_distance) {
                 //highlight_collision(p->pos);
                 if (a->is_phased) continue;
-                array_list_remove(state.projectiles, i);
-                on_asteroid_hit(a, j);
+                if (HAS_PIERCING) {
+                    if (p->cooldown <= 0.0f) {
+                        p->cooldown = 0.25f;
+                        on_asteroid_hit(a, j);
+                    }
+                } else {
+                    array_list_remove(state.projectiles, i);
+                    on_asteroid_hit(a, j);
+                }
             }
         }
     }
@@ -1135,61 +1161,93 @@ void add_particles(const v2 pos, const int n, const float r, const float g, cons
 }
 
 void add_projectile(const v2 pos, const bool from_ship, const bool from_small_saucer) {
-    if (state.state == OVER_MENU) return;
+    if (state.state != GAME_VIEW) return;
 
     const v2 ship_vel = (v2){
-        -sinf((state.ship.angle * (float) M_PI) / 180.0f),
-        cosf((state.ship.angle * (float) M_PI) / 180.0f)
+        -sinf(state.ship.angle * (float) M_PI / 180.0f),
+        cosf(state.ship.angle * (float) M_PI / 180.0f)
     };
     const float rand_angle = randf(0.00f, 1.0f) * (float) M_TAU;
 
-    v2 projectile_vel;
-    if (from_ship) {
-        // we are firing it
-        projectile_vel = v2_scale(ship_vel, 8.0f);
-        SDL_ClearAudioStream(state.fire_stream);
-        play_sound_effect(AUDIO_STREAM_FIRE, audio_clips.fire);
-    } else if (from_small_saucer) {
-        // the small saucer is firing it, so aim at the player
-        v2 direction = {
-            state.ship.position.x - pos.x,
-            state.ship.position.y - pos.y
-        };
+    const int num_projectiles = from_ship ? FIRE_STREAMS : 1;
+    float spread_angle = 0.0f;
+    if (num_projectiles > 1) {
+        spread_angle = 15.0f * (float) M_PI / 180.0f;
+    }
 
-        const float distance = sqrtf(direction.x * direction.x + direction.y * direction.y);
-        if (distance > 0) {
-            direction.x /= distance;
-            direction.y /= distance;
+    for (int i = 0; i < num_projectiles; i++) {
+        v2 projectile_vel;
+        v2 projectile_pos = pos;
+
+        if (from_ship) {
+            // we are firing it
+            float angle_offset = 0.0f;
+            if (num_projectiles > 1) {
+                angle_offset = spread_angle * (float)i / (float)(num_projectiles - 1) - spread_angle * 0.5f;
+            }
+
+            const float cos_offset = cosf(angle_offset);
+            const float sin_offset = sinf(angle_offset);
+            const v2 rotated_vel = {
+                ship_vel.x * cos_offset - ship_vel.y * sin_offset,
+                ship_vel.x * sin_offset + ship_vel.y * cos_offset
+            };
+
+            projectile_vel = v2_scale(rotated_vel, 8.0f);
+
+            if (num_projectiles > 1) {
+                const float pos_offset = 3.0f * (float)i / (float)(num_projectiles - 1) - 1.5f;
+                projectile_pos.x += ship_vel.y * pos_offset;
+                projectile_pos.y -= ship_vel.x * pos_offset;
+            }
+
+        } else if (from_small_saucer) {
+            // the small saucer is firing it, so aim at the player
+            v2 direction = {
+                state.ship.position.x - pos.x,
+                state.ship.position.y - pos.y
+            };
+
+            const float distance = sqrtf(direction.x * direction.x + direction.y * direction.y);
+            if (distance > 0) {
+                direction.x /= distance;
+                direction.y /= distance;
+            }
+
+            const float accuracy_factor = fminf((float) state.score / 40000.0f, 1.0f);
+            const float max_angle_deviation = (1.0f - accuracy_factor) * (float) M_PI_4;
+            const float angle_deviation = randf(-max_angle_deviation, max_angle_deviation);
+
+            const float cos_dev = cosf(angle_deviation);
+            const float sin_dev = sinf(angle_deviation);
+            const v2 rotated_direction = {
+                direction.x * cos_dev - direction.y * sin_dev,
+                direction.x * sin_dev + direction.y * cos_dev
+            };
+
+            projectile_vel = v2_scale(rotated_direction, 6.0f);
+        } else {
+            // the big saucer is firing it, so aim randomly
+            projectile_vel = v2_scale((v2){-sinf(rand_angle), cosf(rand_angle)}, 6.0f);
         }
 
-        const float accuracy_factor = fminf((float) state.score / 40000.0f, 1.0f);
-        const float max_angle_deviation = (1.0f - accuracy_factor) * (float) M_PI_4;
-
-        const float angle_deviation = randf(-max_angle_deviation, max_angle_deviation);
-
-        const float cos_dev = cosf(angle_deviation);
-        const float sin_dev = sinf(angle_deviation);
-        const v2 rotated_direction = {
-            direction.x * cos_dev - direction.y * sin_dev,
-            direction.x * sin_dev + direction.y * cos_dev
-        };
-
-        projectile_vel = v2_scale(rotated_direction, 6.0f);
-    } else {
-        // the big saucer is firing it, so aim randomly
-        projectile_vel = v2_scale((v2){-sinf(rand_angle), cosf(rand_angle)}, 6.0f);
+        array_list_add(state.projectiles, &(projectile){
+                           .pos = projectile_pos,
+                           .ttl = 2.5f,
+                           .vel = projectile_vel,
+                           .cooldown = 0.0f
+                       });
     }
 
-    array_list_add(state.projectiles, &(projectile){
-                       .pos = pos,
-                       .ttl = 2.5f,
-                       .vel = projectile_vel
-                   });
     if (from_ship) {
-        // apply kickback in the opposite direction
-        state.ship.velocity.x += sinf((state.ship.angle * (float) M_PI) / 180.0f);
-        state.ship.velocity.y -= cosf((state.ship.angle * (float) M_PI) / 180.0f);
+        SDL_ClearAudioStream(state.fire_stream);
+        play_sound_effect(AUDIO_STREAM_FIRE, audio_clips.fire);
+
+        const float kickback_scale = sqrtf((float)num_projectiles);
+        state.ship.velocity.x += sinf(state.ship.angle * (float) M_PI / 180.0f) * kickback_scale;
+        state.ship.velocity.y -= cosf(state.ship.angle * (float) M_PI / 180.0f) * kickback_scale;
     }
+
 }
 
 void destroy_all_asteroids(void) {

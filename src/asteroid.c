@@ -77,8 +77,8 @@ void update_asteroids(void) {
             }
         }
 
-        a->position.x = wrap0f(a->position.x += a->velocity.x * SPEED * (float)global_time.dt, SCREEN_WIDTH);
-        a->position.y = wrap0f(a->position.y += a->velocity.y * SPEED * (float)global_time.dt, SCREEN_HEIGHT);
+        a->position.x = wrap0f(a->position.x += a->velocity.x * DEFAULT_SPEED * (float)global_time.dt, SCREEN_WIDTH);
+        a->position.y = wrap0f(a->position.y += a->velocity.y * DEFAULT_SPEED * (float)global_time.dt, SCREEN_HEIGHT);
     }
 }
 
@@ -508,15 +508,54 @@ void trigger_chain_reaction(const v2 explosion_pos, const float radius) {
     }
 }
 
+typedef struct {
+    asteroid_type type;
+    float base_weight;
+} asteroid_spawn_entry;
+
+static const asteroid_spawn_entry base_spawn_table[] = {
+    {STD,     50.0f},
+    {DBLXP,   15.0f},
+    {CHAIN,   10.0f},
+    {ARMOR,   10.0f},
+    {PHASER,   5.0f},
+    {SPLIT,    5.0f},
+    {VAMPIRE,  3.0f},
+    {STATIC,   1.0f},
+    {LUCKY,    1.0f},
+};
+
+#define SPAWN_TABLE_SIZE (sizeof(base_spawn_table) / sizeof(base_spawn_table[0]))
+
 asteroid_type get_random_asteroid_type(void) {
-    const int roll = randi(1, 100);
-    if (roll <= 50) return STD; // 50% standard
-    if (roll <= 65) return DBLXP; // 15% double XP
-    if (roll <= 75) return CHAIN; // 10% chain reaction
-    if (roll <= 85) return ARMOR; // 10% armored
-    if (roll <= 90) return PHASER; // 5% phaser
-    if (roll <= 95) return SPLIT; // 5% splitter
-    if (roll <= 98) return VAMPIRE; // 3% vampire
-    if (roll <= 99) return STATIC; // 1% static
-    return LUCKY; // 1% lucky
+    float weights[SPAWN_TABLE_SIZE];
+    float total_weight = 0.0f;
+
+    for (int i = 0; i < SPAWN_TABLE_SIZE; i++) {
+        weights[i] = base_spawn_table[i].base_weight;
+
+        switch (base_spawn_table[i].type) {
+            case CHAIN:
+                weights[i] *= CHAIN_CHANCE;
+                break;
+            case LUCKY:
+                weights[i] *= LUCKY_CHANCE;
+                break;
+            default:
+                break;
+        }
+
+        total_weight += weights[i];
+    }
+
+    const float roll = randf(0.0f, total_weight);
+    float current_weight = 0.0f;
+
+    for (int i = 0; i < SPAWN_TABLE_SIZE; i++) {
+        current_weight += weights[i];
+        if (roll <= current_weight) {
+            return base_spawn_table[i].type;
+        }
+    }
+    return STD; // should never get here but I need to appease clion
 }

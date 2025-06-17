@@ -12,7 +12,14 @@
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
-#define SPEED 60
+#define DEFAULT_SPEED 60
+
+extern int FIRE_STREAMS;
+extern float ADDED_SPEED;
+extern float LUCKY_CHANCE;
+extern float CHAIN_CHANCE;
+extern bool HAS_SAFE_WARP;
+extern bool HAS_PIERCING;
 
 typedef struct {
     v2 position;
@@ -36,6 +43,7 @@ typedef struct {
     v2 pos;
     v2 vel;
     float ttl;
+    float cooldown;
 } projectile;
 
 typedef struct {

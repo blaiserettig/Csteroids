@@ -488,24 +488,31 @@ void shop_item_click_callback(void) {
         if (point_in_rect(x, y, &state.shop.containers[i].outer_rect)) {
             if (strcmp(state.shop.containers[i].item.title, "SPEED BOOST") == 0) {
                 SDL_Log("SPEED BOOST CLICKED");
+                ADDED_SPEED += 0.05f;
             }
             if (strcmp(state.shop.containers[i].item.title, "EXTRA CANNON") == 0) {
                 SDL_Log("EXTRA CANNON CLICKED");
+                FIRE_STREAMS++;
             }
             if (strcmp(state.shop.containers[i].item.title, "WEIGHTED DICE") == 0) {
                 SDL_Log("WEIGHTED DICE CLICKED");
+                LUCKY_CHANCE *= 2.0f;
             }
             if (strcmp(state.shop.containers[i].item.title,  "PIERCING PROJECTILES") == 0) {
                 SDL_Log("PIERCING PROJECTILES CLICKED");
+                HAS_PIERCING = true;
             }
             if (strcmp(state.shop.containers[i].item.title, "SPARE PARTS") == 0) {
                 SDL_Log("SPARE PARTS CLICKED");
+                state.lives++;
             }
             if (strcmp(state.shop.containers[i].item.title, "DYNAMITE") == 0) {
                 SDL_Log("DYNAMITE CLICKED");
+                CHAIN_CHANCE *= 2.0f;
             }
             if (strcmp(state.shop.containers[i].item.title, "SAFE WARP") == 0) {
                 SDL_Log("SAFE WARP CLICKED");
+                HAS_SAFE_WARP = true;
             }
         }
     }
