@@ -110,7 +110,6 @@ void init_buttons(void) {
     button_system_add_default(&state.button_system,
                       (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 400.0f, 128, 64}, "DONE",
                       exit_shop, SHOP_MENU);
-
 }
 
 int main(int argc, char *argv[]) {
@@ -302,6 +301,10 @@ void update(void) {
         render_shop();
     }
 
+    if (global_time.is_paused) {
+        render_pause_menu();
+    }
+
     button_system_render(&state.button_system, state.renderer);
 
     if (state.state == START_MENU || state.state == SHOP_MENU) return;
@@ -354,10 +357,6 @@ void update(void) {
             pause_game();
         }
         state.pause_state_change = false;
-    }
-
-    if (global_time.is_paused) {
-        render_pause_menu();
     }
 
     if (!state.dead) render_ship();
@@ -950,18 +949,18 @@ void projectile_collision_check(void) {
         const projectile *p = array_list_get(state.projectiles, i);
 
         //Projectile vs. ship collision
-        if (v2_dist_sqr(p->pos, state.ship.position) < 150 && p->ttl < 1.25f && !state.dead && state.player_invincible_timer <= 0.05f) {
+        if (v2_dist_sqr(p->pos, state.ship.position) < 150 && p->ttl < 2.25f && !state.dead && state.player_invincible_timer <= 0.05f) {
             on_ship_hit();
         }
 
         // Projectile vs. saucer collision
         if (state.s_saucer) {
-            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 235 && p->ttl < 1.35f) {
+            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 235 && p->ttl < 2.35f) {
                 on_saucer_hit(true);
             }
         }
         if (state.b_saucer) {
-            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 260 && p->ttl < 1.35f) {
+            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 260 && p->ttl < 2.35f) {
                 on_saucer_hit(false);
             }
         }
@@ -1147,7 +1146,7 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
     v2 projectile_vel;
     if (from_ship) {
         // we are firing it
-        projectile_vel = v2_scale(ship_vel, 6.0f);
+        projectile_vel = v2_scale(ship_vel, 8.0f);
         SDL_ClearAudioStream(state.fire_stream);
         play_sound_effect(AUDIO_STREAM_FIRE, audio_clips.fire);
     } else if (from_small_saucer) {
@@ -1183,7 +1182,7 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
 
     array_list_add(state.projectiles, &(projectile){
                        .pos = pos,
-                       .ttl = 1.5f,
+                       .ttl = 2.5f,
                        .vel = projectile_vel
                    });
     if (from_ship) {

@@ -38,7 +38,8 @@ typedef struct {
 
     bool render_ship;
     bool render_items[3];
-    bool init;
+    bool cycle_init;
+    bool item_button_init;
 } shop;
 
 void init_shop(void);

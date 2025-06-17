@@ -3,6 +3,7 @@
 #include "audio.h"
 #include "text.h"
 #include "main.h"
+#include "util/math_ext.h"
 
 void button_system_init(button_system *bs) {
     bs->buttons = NULL;
@@ -47,11 +48,6 @@ button* button_system_add_custom(button_system *bs, const button btn) {
 
     bs->buttons[bs->count] = btn;
     return &bs->buttons[bs->count++];
-}
-
-static bool point_in_rect(const float x, const float y, const SDL_FRect *rect) {
-    return x >= rect->x && x <= rect->x + rect->w &&
-           y >= rect->y && y <= rect->y + rect->h;
 }
 
 void button_system_process_event(const button_system *bs, const SDL_Event *event) {

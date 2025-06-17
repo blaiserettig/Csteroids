@@ -56,7 +56,7 @@ void render_3d_wireframe_ship(SDL_Renderer *renderer, const SDL_FRect *ship_rect
     const float center_x = ship_rect->x + ship_rect->w * 0.5f;
     const float center_y = ship_rect->y + ship_rect->h * 0.5f;
 
-    const float scale = fminf(ship_rect->w, ship_rect->h) * 0.012f;
+    const float scale = fminf(ship_rect->w, ship_rect->h) * 0.02f;
 
     v2 screen_points[num_vertices];
 
@@ -387,7 +387,7 @@ void draw_safe_warp_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
 
     SDL_SetRenderDrawColor(renderer, 50, 255, 50, 255);
 
-    const float shield_size = size * 0.3f;
+    /*const float shield_size = size * 0.3f;
     const SDL_FRect shield_body = {
         cx - shield_size * 0.5f, cy - shield_size * 0.4f,
         shield_size, shield_size * 0.7f
@@ -409,7 +409,7 @@ void draw_safe_warp_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
         cx, cy + check_size * 0.2f);
     SDL_RenderLine(renderer,
         cx, cy + check_size * 0.2f,
-        cx + check_size * 0.3f, cy - check_size * 0.2f);
+        cx + check_size * 0.3f, cy - check_size * 0.2f);*/
 }
 
 void render_shop_item_icon(SDL_Renderer *renderer, const shop_item_container *container) {
@@ -481,9 +481,39 @@ void shop_item_init(void) {
     };
 }
 
+void shop_item_click_callback(void) {
+    float x, y;
+    SDL_GetMouseState(&x, &y);
+    for (int i = 0; i < state.shop.item_count; i++) {
+        if (point_in_rect(x, y, &state.shop.containers[i].outer_rect)) {
+            if (strcmp(state.shop.containers[i].item.title, "SPEED BOOST") == 0) {
+                SDL_Log("SPEED BOOST CLICKED");
+            }
+            if (strcmp(state.shop.containers[i].item.title, "EXTRA CANNON") == 0) {
+                SDL_Log("EXTRA CANNON CLICKED");
+            }
+            if (strcmp(state.shop.containers[i].item.title, "WEIGHTED DICE") == 0) {
+                SDL_Log("WEIGHTED DICE CLICKED");
+            }
+            if (strcmp(state.shop.containers[i].item.title,  "PIERCING PROJECTILES") == 0) {
+                SDL_Log("PIERCING PROJECTILES CLICKED");
+            }
+            if (strcmp(state.shop.containers[i].item.title, "SPARE PARTS") == 0) {
+                SDL_Log("SPARE PARTS CLICKED");
+            }
+            if (strcmp(state.shop.containers[i].item.title, "DYNAMITE") == 0) {
+                SDL_Log("DYNAMITE CLICKED");
+            }
+            if (strcmp(state.shop.containers[i].item.title, "SAFE WARP") == 0) {
+                SDL_Log("SAFE WARP CLICKED");
+            }
+        }
+    }
+}
+
 shop_item get_random_shop_item(void) {
     while (true) {
-        const int n = randi(0, 7);
+        const int n = randi(0, 6);
         if (state.shop.items_list[n].included == false) {
             state.shop.items_list[n].included = true;
             return state.shop.items_list[n];
@@ -543,7 +573,7 @@ void shop_init(shop *s, const float screen_width, const float screen_height) {
     s->render_items[0] = false;
     s->render_items[1] = false;
     s->render_items[2] = false;
-    s->init = false;
+    s->cycle_init = false;
 
     s->padding = 50.0f;
     s->item_spacing = 15.0f;
@@ -664,7 +694,7 @@ void render_shop(void) {
 }
 
 Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
-    if (!state.shop.init) {
+    if (!state.shop.cycle_init) {
         const float items_area_x = state.shop.outer_ship_rect.x + state.shop.outer_ship_rect.w + 40; // SCALE from init_shop = 0.75f below
         const float items_area_width = (SCREEN_WIDTH - (SCREEN_WIDTH - state.shop.padding * 2) * 0.75f) / 2.0f + (SCREEN_WIDTH - state.shop.padding * 2) * 0.75f - items_area_x - 20;
         const float items_area_height = (SCREEN_HEIGHT - state.shop.padding * 2) * 0.75f - 40;
@@ -684,8 +714,20 @@ Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
             const shop_item h = get_random_shop_item();
             shop_item_container_init(&state.shop.containers[i], item_container, 0.8f,  h.title, h.description, h.price);
         }
-        state.shop.init = true;
+        state.shop.cycle_init = true;
         state.state = SHOP_MENU;
+    }
+    if (!state.shop.item_button_init) {
+        for (int i = 0; i < state.shop.item_count; i++) {
+            const button b = {
+                .draw_rect = state.shop.containers[i].outer_rect, .btn_color = (SDL_Color){0, 0, 0, 0},
+                .label_color = (SDL_Color){0, 0, 0, 0}, .hover_color = (SDL_Color){0, 255, 255, 10},
+                .is_hovered = false, .was_clicked = false, .on_click = shop_item_click_callback, .visible = true,
+                .label = "", .display_state = SHOP_MENU
+            };
+            button_system_add_custom(&state.button_system, b);
+        }
+        state.shop.item_button_init = true;
     }
     if (!state.shop.render_ship) {
         state.shop.render_ship = true;
@@ -714,6 +756,6 @@ void exit_shop(void) {
     state.shop.render_items[0] = false;
     state.shop.render_items[1] = false;
     state.shop.render_items[2] = false;
-    state.shop.init = false;
+    state.shop.cycle_init = false;
     state.state = GAME_VIEW;
 }

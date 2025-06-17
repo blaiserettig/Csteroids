@@ -41,5 +41,4 @@ void button_system_process_event(const button_system *bs, const SDL_Event *event
 void button_system_render(const button_system *bs, SDL_Renderer *renderer);
 void button_system_show_buttons_for_state(const button_system *bs, enum state game_state);
 
-
 #endif //BUTTON_H
