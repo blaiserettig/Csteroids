@@ -13,6 +13,7 @@
 #define SCREEN_HEIGHT 1080
 
 #define DEFAULT_SPEED 60
+#define SCALE 1.5
 
 extern int FIRE_STREAMS;
 extern float ADDED_SPEED;

@@ -763,6 +763,10 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
             SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
             render_score((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2, s->inner_ship_rect.y + 80}, 20.0f);
             render_lives((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2 - 15, s->inner_ship_rect.y + 130});
+
+            SDL_SetRenderDrawColor(state.renderer, 255, 255, 100, 255);
+            //render_text_thick(state.renderer, "SHOP", (v2) {SCREEN_WIDTH / 2.0f, 100.0f}, 70.0f, 5.0f, 90.0f);
+            render_text_3d_extruded(state.renderer, "SHOP", (v2) {SCREEN_WIDTH / 2.0f, 100.0f}, 75.0f);
         }
     }
 }

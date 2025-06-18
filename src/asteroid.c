@@ -39,7 +39,7 @@ float get_asteroid_check_distance(const asteroid_size size) {
         case MEDIUM:
             return 500.0f;
         case LARGE:
-            return 700.0f;
+            return 950.0f;
         default:
             return 0.0f;
     }
@@ -294,8 +294,10 @@ void render_asteroids(void) {
         for (int j = 0; j < a->point_count; j++) {
             const int next = (j + 1) % a->point_count;
             SDL_RenderLine(state.renderer,
-                           a->position.x + a->points[j].x, a->position.y + a->points[j].y,
-                           a->position.x + a->points[next].x, a->position.y + a->points[next].y);
+                           a->position.x + a->points[j].x * (float) SCALE,
+                           a->position.y + a->points[j].y * (float) SCALE,
+                           a->position.x + a->points[next].x * (float) SCALE,
+                           a->position.y + a->points[next].y * (float) SCALE);
         }
 
         //  armor indicator
@@ -404,7 +406,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
     }
 
     const int roll = randi(1, 100);
-    if (roll < 90) {
+    if (roll < 10) {
         add_coin(a->position);
     }
 

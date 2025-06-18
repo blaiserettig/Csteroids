@@ -746,7 +746,7 @@ void handle_coins_world(void) {
     for (size_t i = 0; i < array_list_size(state.a_coins); i++) {
         const s_coin *c = array_list_get(state.a_coins, i);
         render_coin(state.renderer, c->pos, 10.0f);
-        if (v2_dist_sqr(state.ship.position, c->pos) < 250) {
+        if (v2_dist_sqr(state.ship.position, c->pos) < 275) {
             state.coins++;
             array_list_remove(state.a_coins, i);
             play_sound_effect(AUDIO_STREAM_SFX, audio_clips.coin);
@@ -784,8 +784,8 @@ void render_ship(void) {
 
     const v2 pos = state.ship.position;
     for (int i = 0; i < 5; i++) {
-        SDL_RenderLine(state.renderer, pos.x + new_points[i].x, pos.y + new_points[i].y,
-                       pos.x + new_points[i + 1].x, pos.y + new_points[i + 1].y);
+        SDL_RenderLine(state.renderer, pos.x + new_points[i].x * (float)SCALE, pos.y + new_points[i].y * (float)SCALE,
+                       pos.x + new_points[i + 1].x * (float)SCALE, pos.y + new_points[i + 1].y * (float)SCALE);
     }
 
     free(new_points);
@@ -832,11 +832,11 @@ void render_booster(void) {
 
     //SDL_SetRenderDrawColor(state.renderer, 112, 73, 0, 255);
 
-    SDL_RenderLine(state.renderer, pos.x + new_points[0].x, pos.y + new_points[0].y,
-                   pos.x + new_points[1].x, pos.y + new_points[1].y);
+    SDL_RenderLine(state.renderer, pos.x + new_points[0].x * (float) SCALE, pos.y + new_points[0].y * (float) SCALE,
+                   pos.x + new_points[1].x * (float) SCALE, pos.y + new_points[1].y * (float) SCALE);
 
-    SDL_RenderLine(state.renderer, pos.x + new_points[1].x, pos.y + new_points[1].y,
-                   pos.x + new_points[2].x, pos.y + new_points[2].y);
+    SDL_RenderLine(state.renderer, pos.x + new_points[1].x * (float) SCALE, pos.y + new_points[1].y * (float) SCALE,
+                   pos.x + new_points[2].x * (float) SCALE, pos.y + new_points[2].y * (float) SCALE);
 
     //SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
 
@@ -874,10 +874,13 @@ v2 *render_angle_helper(const v2 *points, const int n, const float angle) {
 }
 
 void render_saucer(const v2 pos, const float scale) {
+    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
     for (int i = 0; i < 12; i++) {
         const int next = (i + 1) % 12;
-        SDL_RenderLine(state.renderer, pos.x + saucer_points[i].x * scale, pos.y + saucer_points[i].y * scale,
-                       pos.x + saucer_points[next].x * scale, pos.y + saucer_points[next].y * scale);
+        SDL_RenderLine(state.renderer, pos.x + saucer_points[i].x * scale * (float) SCALE,
+                       pos.y + saucer_points[i].y * scale * (float) SCALE,
+                       pos.x + saucer_points[next].x * scale * (float) SCALE,
+                       pos.y + saucer_points[next].y * scale * (float) SCALE);
     }
 }
 
@@ -990,18 +993,18 @@ void projectile_collision_check(void) {
         projectile *p = array_list_get(state.projectiles, i);
 
         //Projectile vs. ship collision
-        if (v2_dist_sqr(p->pos, state.ship.position) < 150 && p->ttl < 2.25f && !state.dead && state.player_invincible_timer <= 0.05f) {
+        if (v2_dist_sqr(p->pos, state.ship.position) < 150 * (float)SCALE && p->ttl < 2.25f && !state.dead && state.player_invincible_timer <= 0.05f) {
             on_ship_hit();
         }
 
         // Projectile vs. saucer collision
         if (state.s_saucer) {
-            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 235 && p->ttl < 2.35f) {
+            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 235 * (float)SCALE && p->ttl < 2.35f) {
                 on_saucer_hit(true);
             }
         }
         if (state.b_saucer) {
-            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 260 && p->ttl < 2.35f) {
+            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 260 * (float)SCALE && p->ttl < 2.35f) {
                 on_saucer_hit(false);
             }
         }
@@ -1041,7 +1044,7 @@ int ship_collision_check(void) {
         for (int j = 0; j < array_list_size(state.asteroids); j++) {
             const asteroid *a = array_list_get(state.asteroids, j);
 
-            if (v2_dist_sqr(state.ship.position, a->position) > 20000.0f) continue;
+            if (v2_dist_sqr(state.ship.position, a->position) > 30000.0f) continue;
 
             for (int k = 0; k < a->point_count; k++) {
                 const int next_point = (k + 1) % a->point_count;
