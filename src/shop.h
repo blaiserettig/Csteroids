@@ -52,5 +52,7 @@ void render_shop(void);
 Uint32 enter_shop(void *userdata, SDL_TimerID timerID, Uint32 interval);
 void exit_shop(void);
 void set_shop_buttons(bool val);
+void set_shop_button(bool val, int i);
+void render_coin(SDL_Renderer *renderer, v2 position, float radius);
 
 #endif //SHOP_H

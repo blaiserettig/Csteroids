@@ -375,6 +375,10 @@ bool can_hit_asteroid(const asteroid *a) {
     return a->type != PHASER || !a->is_phased;
 }
 
+void add_coin(const v2 pos) {
+    array_list_add(state.a_coins, &(s_coin) {.pos = pos});
+}
+
 void on_asteroid_hit(const asteroid *a, const int i) {
     if (!can_hit_asteroid(a)) {
         return;
@@ -397,6 +401,11 @@ void on_asteroid_hit(const asteroid *a, const int i) {
 
     if (a->type == STATIC) {
         state.player_static_timer = 2.0f;
+    }
+
+    const int roll = randi(1, 100);
+    if (roll < 90) {
+        add_coin(a->position);
     }
 
     add_particles(a->position, randi(15, 20), a->r, a->g, a->b);

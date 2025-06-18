@@ -59,6 +59,10 @@ typedef struct {
 } big_saucer, small_saucer;
 
 typedef struct {
+    v2 pos;
+} s_coin;
+
+typedef struct {
     SDL_Time now;
     SDL_Time last;
     double dt;
@@ -95,6 +99,7 @@ typedef struct {
     ArrayList *asteroids;
     ArrayList *projectiles;
     ArrayList *asteroid_particles;
+    ArrayList *a_coins;
     button_system button_system;
     death_line ship_death_lines[5];
     death_line saucer_death_lines[12];
@@ -178,6 +183,9 @@ void update_ship(void);
 
 void update_saucer(void);
 
+void handle_coins_world(void);
+
+
 void init_saucer(void);
 
 void render_stage_text(void);
@@ -206,7 +214,7 @@ void render_lives(v2 offset);
 
 void render_score(v2 pos, float scale);
 
-void render_coins(v2 pos);
+void render_coins_ui(v2 pos);
 
 void render_saucer(v2 pos, float scale);
 

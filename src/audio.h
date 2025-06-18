@@ -32,6 +32,8 @@ typedef struct {
     audio_clip button_select;
     audio_clip armor_hit;
     audio_clip lucky;
+    audio_clip coin;
+    audio_clip no;
 } audio_clips_struct;
 
 typedef enum {

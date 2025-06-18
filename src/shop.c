@@ -25,9 +25,7 @@ void render_coin(SDL_Renderer *renderer, const v2 position, const float radius) 
     const float center_x = position.x;
     const float center_y = position.y;
 
-
     draw_circle_outline(renderer, center_x, center_y, coin_radius);
-    //draw_circle_outline(renderer, center_x, center_y, coin_radius - 1);
 
     const float c_size = coin_radius / 2;
 
@@ -522,7 +520,12 @@ void shop_item_click_callback(void) {
     SDL_GetMouseState(&x, &y);
     for (int i = 0; i < state.shop.item_count; i++) {
         if (point_in_rect(x, y, &state.shop.containers[i].outer_rect)) {
+            if (state.shop.containers[i].item.price > state.coins) {
+                //play_sound_effect(AUDIO_STREAM_SFX, audio_clips.no);
+                return;
+            }
             state.shop.containers[i].item.is_purchased = true;
+            state.coins -= state.shop.containers[i].item.price;
             if (strcmp(state.shop.containers[i].item.title, "SPEED BOOST") == 0) {
                 SDL_Log("SPEED BOOST CLICKED");
                 ADDED_SPEED += 0.05f;
@@ -719,14 +722,24 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
             const v2 price_pos = (v2) {.x = container->title_rect.x + container->title_rect.w * 0.1f, .y = container->title_rect.y + container->title_rect.h * 0.3f};
             char price_str[8];
             sprintf(price_str, "%d", container->item.price);
-            render_text_3d(state.renderer, container->item.title, title_pos, 25.0f, (SDL_Color) {.r = 255, .g = 255, .b = 255, .a = 255});
+            const SDL_Color text_color = container->item.is_affordable || container->item.is_purchased ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){255, 200, 200, 200};
+            render_text_3d(state.renderer, container->item.title, title_pos, 25.0f, text_color);
 
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            //SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             const v2 desc_pos = (v2) {.x = container->desc_rect.x + container->desc_rect.w * 0.5f, .y = container->desc_rect.y + container->desc_rect.h * 0.5f};
             render_text(state.renderer, container->item.description,  desc_pos, 15.0f);
 
-            if (container->item.is_purchased) {
+            if (!container->item.is_affordable) {
+                set_shop_button(false, i);
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 230);
+                SDL_RenderRect(renderer, &container->desc_rect);
+                SDL_RenderRect(renderer, &container->title_rect);
+                SDL_RenderRect(renderer, &container->icon_rect);
+                SDL_RenderRect(renderer, &container->outer_rect);
+            }
+
+            if (container->item.is_purchased) {
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
                 SDL_RenderRect(renderer, &container->desc_rect);
                 SDL_RenderRect(renderer, &container->title_rect);
                 SDL_RenderRect(renderer, &container->icon_rect);
@@ -746,7 +759,7 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
                             }, 10.0f);
             }
 
-            render_coins((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2 - 15, s->inner_ship_rect.y + 45});
+            render_coins_ui((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2 - 15, s->inner_ship_rect.y + 45});
             SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
             render_score((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2, s->inner_ship_rect.y + 80}, 20.0f);
             render_lives((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2 - 15, s->inner_ship_rect.y + 130});
@@ -768,9 +781,13 @@ void render_shop(void) {
     render_3d_wireframe_ship(state.renderer, &state.shop.inner_ship_rect, state.shop.ship_rotation);
 }
 
+void set_shop_button(const bool val, const int i) {
+    state.button_system.buttons[state.shop.button_start_idx + i].visible = val;
+}
+
 void set_shop_buttons(const bool val) {
     for (int i = 0; i < state.shop.item_count; i++) {
-        state.button_system.buttons[state.shop.button_start_idx + i].visible = val;
+        set_shop_button(val, i);
     }
 }
 

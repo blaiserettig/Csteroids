@@ -329,6 +329,8 @@ int load_all_audio(void) {
         {"BUTTON_SELECT.wav", &audio_clips.button_select},
         {"ARMOR_HIT.wav", &audio_clips.armor_hit},
         {"LUCKY.wav", &audio_clips.lucky},
+        {"COIN.wav", &audio_clips.coin},
+        {"NO.wav", &audio_clips.no},
     };
 
     const int file_count = sizeof(audio_files) / sizeof(audio_files[0]);

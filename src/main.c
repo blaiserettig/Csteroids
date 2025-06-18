@@ -130,6 +130,7 @@ int main(int argc, char *argv[]) {
     state.asteroids = array_list_create(sizeof(asteroid));
     state.projectiles = array_list_create(sizeof(projectile));
     state.asteroid_particles = array_list_create(sizeof(death_line));
+    state.a_coins = array_list_create(sizeof(s_coin));
 
     init_hyperspace();
     init_buttons();
@@ -351,7 +352,8 @@ void update(void) {
         render_asteroid_explosion_particles();
         render_lives((v2){30.0f, 50.0f});
         render_score((v2){62.0f, 12.0f}, 20.0f);
-        render_coins((v2){SCREEN_WIDTH - 100, 20.0f});
+        render_coins_ui((v2){SCREEN_WIDTH - 100, 20.0f});
+        handle_coins_world();
         if (state.s_saucer) render_saucer(state.small_saucer.pos, 1.25f);
         if (state.b_saucer) render_saucer(state.big_saucer.pos, 1.75f);
         if ((state.s_saucer || state.b_saucer) && state.state != OVER_MENU && !global_time.is_paused)
@@ -740,6 +742,18 @@ void handle_input(void) {
     }
 }
 
+void handle_coins_world(void) {
+    for (size_t i = 0; i < array_list_size(state.a_coins); i++) {
+        const s_coin *c = array_list_get(state.a_coins, i);
+        render_coin(state.renderer, c->pos, 10.0f);
+        if (v2_dist_sqr(state.ship.position, c->pos) < 250) {
+            state.coins++;
+            array_list_remove(state.a_coins, i);
+            play_sound_effect(AUDIO_STREAM_SFX, audio_clips.coin);
+        }
+    }
+}
+
 void render_spacecraft_explosion(const bool saucer, const bool small) {
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
     const v2 pos = saucer ? small ? state.small_saucer.pos : state.big_saucer.pos : state.ship.position;
@@ -796,7 +810,7 @@ void render_score(const v2 pos, const float scale) {
     render_text(state.renderer, buffer, pos, scale);
 }
 
-void render_coins(const v2 pos) {
+void render_coins_ui(const v2 pos) {
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 100, 255);
     render_coin(state.renderer, pos, 10.0f);
     char coins[8];
@@ -1278,6 +1292,7 @@ void cleanup(void) {
     array_list_free(state.asteroids);
     array_list_free(state.projectiles);
     array_list_free(state.asteroid_particles);
+    array_list_free(state.a_coins);
     SDL_DestroyTexture(state.intermediate_texture);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
