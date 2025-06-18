@@ -1,12 +1,48 @@
 
 #include "shop.h"
 
+#include <stdio.h>
+
 #include "main.h"
 #include "text.h"
 #include "util/v3.h"
 
 #include "SDL3/SDL_render.h"
 #include "util/math_ext.h"
+
+
+void draw_circle_outline(SDL_Renderer *renderer, const float center_x, const float center_y, const float radius) {
+    for (int angle = 0; angle < 360; angle++) {
+        const float rad = (float)angle * (float)M_PI / 180.0f;
+        const float x = center_x + (float)radius * cosf(rad);
+        const float y = center_y + (float)radius * sinf(rad);
+        SDL_RenderPoint(renderer, x, y);
+    }
+}
+
+void render_coin(SDL_Renderer *renderer, const v2 position, const float radius) {
+    const float coin_radius = radius;
+    const float center_x = position.x;
+    const float center_y = position.y;
+
+
+    draw_circle_outline(renderer, center_x, center_y, coin_radius);
+    //draw_circle_outline(renderer, center_x, center_y, coin_radius - 1);
+
+    const float c_size = coin_radius / 2;
+
+    for (int i = (int) -c_size / 2; i <= (int) c_size / 2; i++) {
+        SDL_RenderPoint(renderer, center_x - c_size / 2, center_y + (float) i);
+    }
+
+    for (int i = (int) -c_size / 2; i <= (int) c_size / 4; i++) {
+        SDL_RenderPoint(renderer, center_x + (float) i, center_y - c_size / 2);
+    }
+
+    for (int i = (int) -c_size / 2; i <= (int) c_size / 4; i++) {
+        SDL_RenderPoint(renderer, center_x + (float) i, center_y + c_size / 2);
+    }
+}
 
 void shop_update_ship_preview(shop *s, const float delta_time) {
     static float rotation = 0.0f;
@@ -486,6 +522,7 @@ void shop_item_click_callback(void) {
     SDL_GetMouseState(&x, &y);
     for (int i = 0; i < state.shop.item_count; i++) {
         if (point_in_rect(x, y, &state.shop.containers[i].outer_rect)) {
+            state.shop.containers[i].item.is_purchased = true;
             if (strcmp(state.shop.containers[i].item.title, "SPEED BOOST") == 0) {
                 SDL_Log("SPEED BOOST CLICKED");
                 ADDED_SPEED += 0.05f;
@@ -678,12 +715,26 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
             SDL_RenderRect(renderer, &container->title_rect);
             SDL_RenderRect(renderer, &container->desc_rect);
 
-            const v2 title_pos = (v2) {.x = container->title_rect.x + container->title_rect.w * 0.5f, .y = container->title_rect.y + container->title_rect.h * 0.5f};
+            const v2 title_pos = (v2) {.x = container->title_rect.x + container->title_rect.w * 0.5f, .y = container->title_rect.y + container->title_rect.h * 0.3f};
+            const v2 price_pos = (v2) {.x = container->title_rect.x + container->title_rect.w * 0.1f, .y = container->title_rect.y + container->title_rect.h * 0.3f};
+            char price_str[8];
+            sprintf(price_str, "%d", container->item.price);
             render_text_3d(state.renderer, container->item.title, title_pos, 25.0f, (SDL_Color) {.r = 255, .g = 255, .b = 255, .a = 255});
+            render_text_3d(state.renderer, price_str, price_pos, 25.0f,  (SDL_Color) {.r = 255, .g = 255, .b = 100, .a = 255});
+            render_coin(renderer, (v2){.x = container->title_rect.x + container->title_rect.w * 0.04f, .y = container->title_rect.y + container->title_rect.h * 0.5f}, 10.0f);
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             const v2 desc_pos = (v2) {.x = container->desc_rect.x + container->desc_rect.w * 0.5f, .y = container->desc_rect.y + container->desc_rect.h * 0.5f};
             render_text(state.renderer, container->item.description,  desc_pos, 15.0f);
+
+            if (container->item.is_purchased) {
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 230);
+                SDL_RenderRect(renderer,  &container->desc_rect);
+                SDL_RenderRect(renderer,  &container->title_rect);
+                SDL_RenderRect(renderer, &container->icon_rect);
+                SDL_RenderRect(renderer, &container->outer_rect);
+                state.button_system.buttons[state.shop.button_start_idx + (size_t)i].visible = false;
+            }
         }
     }
 }
