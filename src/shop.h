@@ -43,6 +43,7 @@ typedef struct {
     bool render_items[3];
     bool cycle_init;
     bool item_button_init;
+    bool leaving;
 } shop;
 
 void render_coin(SDL_Renderer *renderer, v2 position, float radius);

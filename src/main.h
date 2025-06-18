@@ -61,6 +61,7 @@ typedef struct {
 
 typedef struct {
     v2 pos;
+    float ttl;
 } s_coin;
 
 typedef struct {
@@ -96,6 +97,8 @@ typedef struct {
     bool should_spawn_next_stage;
     bool pause_state_change;
     bool shop_state_change;
+    bool enter_shop;
+    bool reset;
     ship ship;
     ArrayList *asteroids;
     ArrayList *projectiles;

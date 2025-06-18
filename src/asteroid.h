@@ -64,10 +64,12 @@ void handle_lucky_bonus(void);
 
 void trigger_chain_reaction(v2 explosion_pos, float radius);
 
-asteroid_type get_random_asteroid_type(void);
+asteroid_type get_random_asteroid_type(int stage);
 
 void add_new_asteroid_typed(asteroid_size size, v2 pos, asteroid_type type);
 
 void add_new_asteroid(asteroid_size size, v2 pos);
+
+void add_coin(v2 pos);
 
 #endif //ASTEROID_H

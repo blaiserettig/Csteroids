@@ -35,11 +35,11 @@ float get_asteroid_velocity_scale(const asteroid_size size) {
 float get_asteroid_check_distance(const asteroid_size size) {
     switch (size) {
         case SMALL:
-            return 200.0f;
+            return 300.0f;
         case MEDIUM:
-            return 500.0f;
+            return 600.0f;
         case LARGE:
-            return 950.0f;
+            return 1000.0f;
         default:
             return 0.0f;
     }
@@ -319,7 +319,7 @@ void render_asteroids(void) {
 
 
 void add_new_asteroid(const asteroid_size size, const v2 pos) {
-    add_new_asteroid_typed(size, pos, get_random_asteroid_type());
+    add_new_asteroid_typed(size, pos, get_random_asteroid_type(state.stage));
 }
 
 void add_new_asteroid_typed(const asteroid_size size, v2 pos, const asteroid_type type) {
@@ -378,7 +378,7 @@ bool can_hit_asteroid(const asteroid *a) {
 }
 
 void add_coin(const v2 pos) {
-    array_list_add(state.a_coins, &(s_coin) {.pos = pos});
+    array_list_add(state.a_coins, &(s_coin) {.pos = pos, .ttl = 15.0f});
 }
 
 void on_asteroid_hit(const asteroid *a, const int i) {
@@ -406,7 +406,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
     }
 
     const int roll = randi(1, 100);
-    if (roll < 10) {
+    if (roll < 3) {
         add_coin(a->position);
     }
 
@@ -538,14 +538,21 @@ static const asteroid_spawn_entry base_spawn_table[] = {
 
 #define SPAWN_TABLE_SIZE (sizeof(base_spawn_table) / sizeof(base_spawn_table[0]))
 
-asteroid_type get_random_asteroid_type(void) {
+asteroid_type get_random_asteroid_type(const int stage) {
     float weights[SPAWN_TABLE_SIZE];
     float total_weight = 0.0f;
+    const float late_stage_mult = 1.0f + (float)stage * 0.025f;
 
     for (int i = 0; i < SPAWN_TABLE_SIZE; i++) {
         weights[i] = base_spawn_table[i].base_weight;
 
         switch (base_spawn_table[i].type) {
+            case STATIC:
+            case SPLIT:
+            case PHASER:
+            case ARMOR:
+                weights[i] *= late_stage_mult;
+                break;
             case CHAIN:
                 weights[i] *= CHAIN_CHANCE;
                 break;

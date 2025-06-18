@@ -626,6 +626,7 @@ void shop_init(shop *s, const float screen_width, const float screen_height) {
     s->item_spacing = 15.0f;
 
     s->button_start_idx = 0;
+    s->leaving = false;
 
     const float scale = 0.75f;
     const float scaled_width = (screen_width - s->padding * 2) * scale;
@@ -855,6 +856,11 @@ Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
     return 0;
 }
 
+Uint32 flag_leaving_false(void *userdata, SDL_TimerID timerID, Uint32 interval) {
+    state.shop.leaving = false;
+    return 0;
+}
+
 void exit_shop(void) {
     for (int i = 0; i < 7; i++) {
         state.shop.items_list[i].included = false;
@@ -866,6 +872,11 @@ void exit_shop(void) {
     state.shop.cycle_init = false;
 
     set_shop_buttons(false);
-
+    state.enter_shop = false;
+    state.shop.leaving = true;
+    const SDL_TimerID id = SDL_AddTimer(3000, flag_leaving_false, NULL);
+    if (id == 0) {
+        SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+    }
     state.state = GAME_VIEW;
 }

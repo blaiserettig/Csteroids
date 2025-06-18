@@ -335,15 +335,6 @@ void update(void) {
 
         projectile_collision_check();
 
-        if (array_list_size(state.asteroids) < 1 && !state.spawn && !state.s_saucer && !state.b_saucer) {
-            state.spawn = true;
-            state.stage++;
-            const SDL_TimerID id = SDL_AddTimer(1500, begin_new_stage, NULL);
-            if (id == 0) {
-                SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
-            }
-        }
-
         if (state.render_stage_text) render_stage_text();
 
         if (!state.dead) render_ship();
@@ -369,6 +360,24 @@ void update(void) {
             if (state.draw_lucky_timer) return;
             state.draw_lucky_timer = true;
             const SDL_TimerID id = SDL_AddTimer(1000, stop_luck_text_render, NULL);
+            if (id == 0) {
+                SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+            }
+        }
+
+        if (array_list_size(state.asteroids) < 1 && !state.spawn && !state.s_saucer && !state.b_saucer) {
+            if (state.enter_shop || state.reset) return;
+            if (state.stage % 2 == 1 && !state.shop.leaving) {
+                state.enter_shop = true;
+                const SDL_TimerID id = SDL_AddTimer(1000, enter_shop, NULL);
+                if (id == 0) {
+                    SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+                }
+            }
+            if (state.enter_shop) return;
+            state.spawn = true;
+            state.stage++;
+            const SDL_TimerID id = SDL_AddTimer(1500, begin_new_stage, NULL);
             if (id == 0) {
                 SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
             }
@@ -460,6 +469,7 @@ Uint32 begin_new_stage(void *userdata, SDL_TimerID timerID, Uint32 interval) {
     state.should_spawn_next_stage = true;
     state.spawn = false;
     state.render_stage_text = true;
+    state.reset = false;
     const SDL_TimerID id = SDL_AddTimer(3000, stop_stage_text_render, NULL);
     if (id == 0) {
         SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
@@ -482,6 +492,7 @@ Uint32 reset_level(void *userdata, SDL_TimerID timerID, Uint32 interval) {
 }
 
 void reset_game(void) {
+    state.reset = true;
     state.state = GAME_VIEW;
     reset_state();
     destroy_all_asteroids();
@@ -491,7 +502,7 @@ void reset_game(void) {
     SDL_GetCurrentTime(&global_time.now);
     SDL_GetCurrentTime(&global_time.last);
 
-    const SDL_TimerID id = SDL_AddTimer(0001, begin_new_stage, NULL);
+    const SDL_TimerID id = SDL_AddTimer(0100, begin_new_stage, NULL);
     if (id == 0) {
         SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
     }
@@ -522,6 +533,8 @@ void reset_state(void) {
     state.draw_lucky_timer = false;
     state.pause_state_change = false;
     state.coins = 0;
+    state.enter_shop = false;
+    state.shop.leaving = false;
 
     ADDED_SPEED = 1.0f;
     FIRE_STREAMS = 1;
@@ -704,10 +717,7 @@ void handle_input(void) {
                         state.a = 1;
                         break;
                     case SDL_SCANCODE_F:
-                        const SDL_TimerID id = SDL_AddTimer(1000, enter_shop, NULL);
-                        if (id == 0) {
-                            SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
-                        }
+
                         break;
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
@@ -742,13 +752,38 @@ void handle_input(void) {
     }
 }
 
+
 void handle_coins_world(void) {
     for (size_t i = 0; i < array_list_size(state.a_coins); i++) {
-        const s_coin *c = array_list_get(state.a_coins, i);
-        render_coin(state.renderer, c->pos, 10.0f);
-        if (v2_dist_sqr(state.ship.position, c->pos) < 275) {
+        s_coin *c = array_list_get(state.a_coins, i);
+        c->ttl -= (float) global_time.dt;
+
+        bool should_render = false;
+
+        if (c->ttl > 7.5f) {
+            should_render = true;
+        } else if (c->ttl > 4.0f) {
+            const float phase_time = fmodf(c->ttl, 1.0f);
+            should_render = phase_time > 0.5f;
+        } else if (c->ttl > 0.0f) {
+            const float phase_time = fmodf(c->ttl, 0.5f);
+            should_render = phase_time > 0.25f;
+        }
+
+        if (should_render) {
+            render_coin(state.renderer, c->pos, 10.0f);
+        }
+
+        if (c->ttl <= 0) {
+            array_list_remove(state.a_coins, i);
+            i--;
+            continue;
+        }
+
+        if (v2_dist_sqr(state.ship.position, c->pos) < 400) {
             state.coins++;
             array_list_remove(state.a_coins, i);
+            i--;
             play_sound_effect(AUDIO_STREAM_SFX, audio_clips.coin);
         }
     }
@@ -922,6 +957,7 @@ void on_saucer_hit(const bool small) {
         add_saucer_death_lines(true, 25.0f);
         state.s_saucer = false;
         state.render_s_saucer = true;
+        add_coin(state.small_saucer.pos);
         const SDL_TimerID id = SDL_AddTimer(3000, stop_saucer_exp_render, NULL);
         if (id == 0) {
             SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
@@ -932,6 +968,7 @@ void on_saucer_hit(const bool small) {
         add_saucer_death_lines(true, 25.0f);
         state.b_saucer = false;
         state.render_b_saucer = true;
+        add_coin(state.big_saucer.pos);
         const SDL_TimerID id = SDL_AddTimer(3000, stop_saucer_exp_render, NULL);
         if (id == 0) {
             SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
@@ -993,18 +1030,18 @@ void projectile_collision_check(void) {
         projectile *p = array_list_get(state.projectiles, i);
 
         //Projectile vs. ship collision
-        if (v2_dist_sqr(p->pos, state.ship.position) < 150 * (float)SCALE && p->ttl < 2.25f && !state.dead && state.player_invincible_timer <= 0.05f) {
+        if (v2_dist_sqr(p->pos, state.ship.position) < 150 * (float)SCALE && p->ttl < 1.75f && !state.dead && state.player_invincible_timer <= 0.05f) {
             on_ship_hit();
         }
 
         // Projectile vs. saucer collision
         if (state.s_saucer) {
-            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 235 * (float)SCALE && p->ttl < 2.35f) {
+            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 265 * (float)SCALE && p->ttl < 1.85f) {
                 on_saucer_hit(true);
             }
         }
         if (state.b_saucer) {
-            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 260 * (float)SCALE && p->ttl < 2.35f) {
+            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 290 * (float)SCALE && p->ttl < 1.85f) {
                 on_saucer_hit(false);
             }
         }
@@ -1052,10 +1089,10 @@ int ship_collision_check(void) {
                 const v2 a_p = a->position;
 
                 v2 res = v2_intersection(
-                    v2_sum(points[i], s_p),
-                    v2_sum(points[next_ship], s_p),
-                    v2_sum(a->points[k], a_p),
-                    v2_sum(a->points[next_point], a_p));
+                    v2_sum(v2_scale(points[i], SCALE), s_p),
+                    v2_sum(v2_scale(points[next_ship], SCALE), s_p),
+                    v2_sum(v2_scale(a->points[k], SCALE), a_p),
+                    v2_sum(v2_scale(a->points[next_point], SCALE), a_p));
 
                 if (isnan(res.x) || isnan(res.y)) continue;
 
@@ -1076,10 +1113,10 @@ int ship_collision_check(void) {
                 const v2 sa_p = state.small_saucer.pos;
 
                 v2 res = v2_intersection(
-                    v2_sum(points[i], sh_p),
-                    v2_sum(points[next_ship], sh_p),
-                    v2_sum(v2_scale(saucer_points[j], 1.25f), sa_p),
-                    v2_sum(v2_scale(saucer_points[next_point], 1.25f), sa_p));
+                    v2_sum(v2_scale(points[i], SCALE), sh_p),
+                    v2_sum(v2_scale(points[next_ship], SCALE), sh_p),
+                    v2_sum(v2_scale(v2_scale(saucer_points[j], 1.25f), SCALE), sa_p),
+                    v2_sum(v2_scale(v2_scale(saucer_points[next_point], 1.25f), SCALE), sa_p));
 
                 if (isnan(res.x) || isnan(res.y)) continue;
 
@@ -1097,10 +1134,10 @@ int ship_collision_check(void) {
                 const v2 sa_p = state.big_saucer.pos;
 
                 v2 res = v2_intersection(
-                    v2_sum(points[i], sh_p),
-                    v2_sum(points[next_ship], sh_p),
-                    v2_sum(v2_scale(saucer_points[j], 1.75f), sa_p),
-                    v2_sum(v2_scale(saucer_points[next_point], 1.75f), sa_p));
+                    v2_sum(v2_scale(points[i], SCALE), sh_p),
+                    v2_sum(v2_scale(points[next_ship], SCALE), sh_p),
+                    v2_sum(v2_scale(v2_scale(saucer_points[j], 1.75f), SCALE), sa_p),
+                    v2_sum(v2_scale(v2_scale(saucer_points[next_point], 1.75f), SCALE), sa_p));
 
                 if (isnan(res.x) || isnan(res.y)) continue;
 
@@ -1258,7 +1295,7 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
 
         array_list_add(state.projectiles, &(projectile){
                            .pos = projectile_pos,
-                           .ttl = 2.5f,
+                           .ttl = 2.0f,
                            .vel = projectile_vel,
                            .cooldown = 0.0f
                        });
