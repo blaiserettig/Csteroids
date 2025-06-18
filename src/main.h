@@ -202,9 +202,11 @@ void render_projectiles(void);
 
 void on_ship_hit(void);
 
-void render_lives(void);
+void render_lives(v2 offset);
 
-void render_score(void);
+void render_score(v2 pos, float scale);
+
+void render_coins(v2 pos);
 
 void render_saucer(v2 pos, float scale);
 

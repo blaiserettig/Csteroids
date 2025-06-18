@@ -720,8 +720,6 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
             char price_str[8];
             sprintf(price_str, "%d", container->item.price);
             render_text_3d(state.renderer, container->item.title, title_pos, 25.0f, (SDL_Color) {.r = 255, .g = 255, .b = 255, .a = 255});
-            render_text_3d(state.renderer, price_str, price_pos, 25.0f,  (SDL_Color) {.r = 255, .g = 255, .b = 100, .a = 255});
-            render_coin(renderer, (v2){.x = container->title_rect.x + container->title_rect.w * 0.04f, .y = container->title_rect.y + container->title_rect.h * 0.5f}, 10.0f);
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             const v2 desc_pos = (v2) {.x = container->desc_rect.x + container->desc_rect.w * 0.5f, .y = container->desc_rect.y + container->desc_rect.h * 0.5f};
@@ -729,12 +727,29 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
 
             if (container->item.is_purchased) {
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 230);
-                SDL_RenderRect(renderer,  &container->desc_rect);
-                SDL_RenderRect(renderer,  &container->title_rect);
+                SDL_RenderRect(renderer, &container->desc_rect);
+                SDL_RenderRect(renderer, &container->title_rect);
                 SDL_RenderRect(renderer, &container->icon_rect);
                 SDL_RenderRect(renderer, &container->outer_rect);
-                state.button_system.buttons[state.shop.button_start_idx + (size_t)i].visible = false;
+                render_text_3d(state.renderer, "BOUGHT",
+                               (v2){
+                                   .x = container->title_rect.x + container->title_rect.w * 0.14f,
+                                   .y = container->title_rect.y + container->title_rect.h * 0.35f
+                               }, 20.0f, (SDL_Color){.r = 255, .g = 255, .b = 100, .a = 255});
+                state.button_system.buttons[state.shop.button_start_idx + (size_t) i].visible = false;
+            } else {
+                render_text_3d(state.renderer, price_str, price_pos, 25.0f,
+                               (SDL_Color){.r = 255, .g = 255, .b = 100, .a = 255});
+                render_coin(renderer, (v2){
+                                .x = container->title_rect.x + container->title_rect.w * 0.04f,
+                                .y = container->title_rect.y + container->title_rect.h * 0.5f
+                            }, 10.0f);
             }
+
+            render_coins((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2 - 15, s->inner_ship_rect.y + 45});
+            SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+            render_score((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2, s->inner_ship_rect.y + 80}, 20.0f);
+            render_lives((v2) {s->inner_ship_rect.x + s->inner_ship_rect.w / 2 - 15, s->inner_ship_rect.y + 130});
         }
     }
 }
@@ -751,6 +766,12 @@ void update_shop(void) {
 void render_shop(void) {
     shop_render(&state.shop, state.renderer);
     render_3d_wireframe_ship(state.renderer, &state.shop.inner_ship_rect, state.shop.ship_rotation);
+}
+
+void set_shop_buttons(const bool val) {
+    for (int i = 0; i < state.shop.item_count; i++) {
+        state.button_system.buttons[state.shop.button_start_idx + i].visible = val;
+    }
 }
 
 Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
@@ -790,9 +811,7 @@ Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
         }
         state.shop.item_button_init = true;
     } else {
-        state.button_system.buttons[state.shop.button_start_idx].visible = false;
-        state.button_system.buttons[state.shop.button_start_idx + 1].visible = false;
-        state.button_system.buttons[state.shop.button_start_idx + 2].visible = false;
+        set_shop_buttons(false);
     }
     if (!state.shop.render_ship) {
         state.shop.render_ship = true;
@@ -809,9 +828,7 @@ Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
     if (!state.shop.render_items[2]) {
         state.shop.render_items[2] = true;
 
-        state.button_system.buttons[state.shop.button_start_idx].visible = true;
-        state.button_system.buttons[state.shop.button_start_idx + 1].visible = true;
-        state.button_system.buttons[state.shop.button_start_idx + 2].visible = true;
+        set_shop_buttons(true);
         return 0;
     }
     return 0;
@@ -827,9 +844,7 @@ void exit_shop(void) {
     state.shop.render_items[2] = false;
     state.shop.cycle_init = false;
 
-    state.button_system.buttons[state.shop.button_start_idx].visible = false;
-    state.button_system.buttons[state.shop.button_start_idx + 1].visible = false;
-    state.button_system.buttons[state.shop.button_start_idx + 2].visible = false;
+    set_shop_buttons(false);
 
     state.state = GAME_VIEW;
 }

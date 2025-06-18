@@ -238,7 +238,7 @@ void apply_screen_effects(SDL_Texture *source_texture, SDL_Renderer *renderer) {
 }
 
 void enter_pause_menu(void) {
-    SDL_Log("ENTER");
+    if (state.previous_state == SHOP_MENU) set_shop_buttons(false);
 }
 
 void render_pause_menu(void) {
@@ -252,7 +252,7 @@ void render_pause_menu(void) {
 }
 
 void exit_pause_menu(void) {
-    SDL_Log("EXIT");
+    if (state.state == SHOP_MENU) set_shop_buttons(true);
 }
 
 void start_game(void) {
@@ -277,6 +277,14 @@ void update(void) {
     update_time();
 
     handle_input();
+    if (state.pause_state_change) {
+        if (global_time.is_paused) {
+            unpause_game();
+        } else {
+            pause_game();
+        }
+        state.pause_state_change = false;
+    }
 
     update_hyperspace();
     render_hyperspace();
@@ -296,6 +304,73 @@ void update(void) {
                 add_new_asteroid(LARGE, (v2){NAN, NAN});
             }
         }
+        if (!global_time.is_paused) update_saucer_spawn();
+
+        const bool is_affect_static = state.player_static_timer > 0.0f;
+        if (is_affect_static) {
+            state.player_static_timer -= (float) global_time.dt;
+            state.w = 0;
+            state.a = 0;
+            state.d = 0;
+            render_static(state.ship.position.x, state.ship.position.y, 1.0f, 200, 200, 200);
+        }
+
+        if (state.player_invincible_timer > 0.0f) {
+            state.player_invincible_timer -= (float) global_time.dt;
+        }
+
+        if (!state.dead && !is_affect_static && !global_time.is_paused) update_ship();
+        update_asteroids();
+        update_asteroid_destruction_timers();
+        update_projectiles();
+        update_asteroid_explosion_particles();
+        if (state.s_saucer || state.b_saucer) {
+            update_saucer();
+        }
+
+        if (ship_collision_check() > 0 && state.player_invincible_timer < 0.05f) {
+            on_ship_hit();
+        }
+
+        projectile_collision_check();
+
+        if (array_list_size(state.asteroids) < 1 && !state.spawn && !state.s_saucer && !state.b_saucer) {
+            state.spawn = true;
+            state.stage++;
+            const SDL_TimerID id = SDL_AddTimer(1500, begin_new_stage, NULL);
+            if (id == 0) {
+                SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+            }
+        }
+
+        if (state.render_stage_text) render_stage_text();
+
+        if (!state.dead) render_ship();
+        render_asteroids();
+        render_projectiles();
+        render_asteroid_explosion_particles();
+        render_lives((v2){30.0f, 50.0f});
+        render_score((v2){62.0f, 12.0f}, 20.0f);
+        render_coins((v2){SCREEN_WIDTH - 100, 20.0f});
+        if (state.s_saucer) render_saucer(state.small_saucer.pos, 1.25f);
+        if (state.b_saucer) render_saucer(state.big_saucer.pos, 1.75f);
+        if ((state.s_saucer || state.b_saucer) && state.state != OVER_MENU && !global_time.is_paused)
+            keep_saucer_sound_playing();
+
+        if (state.dead) render_spacecraft_explosion(false, false);
+        if (state.render_s_saucer) render_spacecraft_explosion(true, true);
+        if (state.render_b_saucer) render_spacecraft_explosion(true, false);
+
+        if (state.draw_lucky) {
+            render_text_thick(state.renderer, state.luck_text, (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 75.0f},
+                              25.0f, 2.0f, 25.0f);
+            if (state.draw_lucky_timer) return;
+            state.draw_lucky_timer = true;
+            const SDL_TimerID id = SDL_AddTimer(1000, stop_luck_text_render, NULL);
+            if (id == 0) {
+                SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+            }
+        }
     }
 
     if (state.state == OVER_MENU) {
@@ -303,7 +378,7 @@ void update(void) {
                                 (v2){(float) SCREEN_WIDTH / 2.0f, (float) SCREEN_HEIGHT / 2.0f - 100.0f}, 35.0f);
     }
 
-    if (state.state == SHOP_MENU) {
+    if (state.state == SHOP_MENU || (state.state == PAUSE_MENU && state.previous_state == SHOP_MENU)) {
         update_shop();
         render_shop();
     }
@@ -313,82 +388,6 @@ void update(void) {
     }
 
     button_system_render(&state.button_system, state.renderer);
-
-    if (state.state == START_MENU || state.state == SHOP_MENU) return;
-
-    if (!global_time.is_paused) update_saucer_spawn();
-
-    const bool update_player = state.player_static_timer > 0.0f;
-    if (update_player) {
-        state.player_static_timer -= (float)global_time.dt;
-        state.w = 0;
-        state.a = 0;
-        state.d = 0;
-        render_static(state.ship.position.x, state.ship.position.y, 1.0f, 200, 200, 200);
-    }
-
-    if (state.player_invincible_timer > 0.0f) {
-        state.player_invincible_timer -= (float)global_time.dt;
-    }
-
-    if (!state.dead && !update_player && !global_time.is_paused) update_ship();
-    update_asteroids();
-    update_asteroid_destruction_timers();
-    update_projectiles();
-    update_asteroid_explosion_particles();
-    if (state.s_saucer || state.b_saucer) {
-        update_saucer();
-    }
-
-    if (ship_collision_check() > 0 && state.player_invincible_timer < 0.05f) {
-        on_ship_hit();
-    }
-
-    projectile_collision_check();
-
-    if (array_list_size(state.asteroids) < 1 && !state.spawn && !state.s_saucer && !state.b_saucer) {
-        state.spawn = true;
-        state.stage++;
-        const SDL_TimerID id = SDL_AddTimer(1500, begin_new_stage, NULL);
-        if (id == 0) {
-            SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
-        }
-    }
-
-    if (state.render_stage_text) render_stage_text();
-
-    if (state.pause_state_change) {
-        if (global_time.is_paused) {
-            unpause_game();
-        } else {
-            pause_game();
-        }
-        state.pause_state_change = false;
-    }
-
-    if (!state.dead) render_ship();
-    render_asteroids();
-    render_projectiles();
-    render_asteroid_explosion_particles();
-    render_lives();
-    render_score();
-    if (state.s_saucer) render_saucer(state.small_saucer.pos, 1.25f);
-    if (state.b_saucer) render_saucer(state.big_saucer.pos, 1.75f);
-    if ((state.s_saucer || state.b_saucer) && state.state != OVER_MENU && !global_time.is_paused) keep_saucer_sound_playing();
-
-    if (state.dead) render_spacecraft_explosion(false, false);
-    if (state.render_s_saucer) render_spacecraft_explosion(true, true);
-    if (state.render_b_saucer) render_spacecraft_explosion(true, false);
-
-    if (state.draw_lucky) {
-        render_text_thick(state.renderer, state.luck_text, (v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 75.0f}, 25.0f, 2.0f, 25.0f);
-        if (state.draw_lucky_timer) return;
-        state.draw_lucky_timer = true;
-        const SDL_TimerID id = SDL_AddTimer(1000, stop_luck_text_render, NULL);
-        if (id == 0) {
-            SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
-        }
-    }
 }
 
 void update_saucer_spawn(void) {
@@ -742,6 +741,7 @@ void handle_input(void) {
 }
 
 void render_spacecraft_explosion(const bool saucer, const bool small) {
+    SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
     const v2 pos = saucer ? small ? state.small_saucer.pos : state.big_saucer.pos : state.ship.position;
 
     const int n = saucer ? 12 : 5;
@@ -777,8 +777,7 @@ void render_ship(void) {
     free(new_points);
 }
 
-void render_lives(void) {
-    v2 offset = (v2){30.0f, 50.0f};
+void render_lives(v2 offset) {
     v2 *new_points = render_angle_helper(ship_points, 6, 180.0f);
     for (int j = 0; j < state.lives; j++) {
         for (int i = 0; i < 5; i++) {
@@ -790,11 +789,20 @@ void render_lives(void) {
     free(new_points);
 }
 
-void render_score(void) {
+void render_score(const v2 pos, const float scale) {
     const int length = snprintf(NULL, 0, "%d", state.score);
     char buffer[length + 1];
     snprintf(buffer, length + 1, "%d", state.score);
-    render_text(state.renderer, buffer, (v2){62.0f, 20.0f}, 20.0f);
+    render_text(state.renderer, buffer, pos, scale);
+}
+
+void render_coins(const v2 pos) {
+    SDL_SetRenderDrawColor(state.renderer, 255, 255, 100, 255);
+    render_coin(state.renderer, pos, 10.0f);
+    char coins[8];
+    snprintf(coins, 8, "%d", state.coins);
+    const v2 num_pos = (v2) {pos.x + 30, pos.y - 10};
+    render_text(state.renderer, coins, num_pos, 20.0f);
 }
 
 void render_booster(void) {

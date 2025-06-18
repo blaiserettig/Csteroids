@@ -3,7 +3,9 @@
 #define SHOP_H
 #include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_rect.h"
+#include "SDL3/SDL_render.h"
 #include "SDL3/SDL_timer.h"
+#include "util/v2.h"
 
 typedef struct {
     char title[32];
@@ -43,10 +45,12 @@ typedef struct {
     bool item_button_init;
 } shop;
 
+void render_coin(SDL_Renderer *renderer, v2 position, float radius);
 void init_shop(void);
 void update_shop(void);
 void render_shop(void);
 Uint32 enter_shop(void *userdata, SDL_TimerID timerID, Uint32 interval);
 void exit_shop(void);
+void set_shop_buttons(bool val);
 
 #endif //SHOP_H
