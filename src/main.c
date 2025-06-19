@@ -42,9 +42,10 @@ bool HAS_PIERCING = false;
 bool HAS_MAGNET = false;
 int RADAR_STACKS = 1;
 float HYPERSPACE_COOLDOWN = 5.0f;
-float FIRE_COOLDOWN = 0.75f;
+float FIRE_COOLDOWN = 0.5f;
 bool HAS_SALVAGE_RIGHTS = false;
 float PROJ_SPEED = 1.0f;
+int PROX_STACK = 0;
 
 game_state state = {0};
 
@@ -140,6 +141,7 @@ int main(int argc, char *argv[]) {
     state.projectiles = array_list_create(sizeof(projectile));
     state.asteroid_particles = array_list_create(sizeof(death_line));
     state.a_coins = array_list_create(sizeof(s_coin));
+    state.prox_explosions = array_list_create(sizeof(prox_explosion));
 
     init_hyperspace();
     init_buttons();
@@ -363,6 +365,9 @@ void update(void) {
         if (state.render_s_saucer) render_spacecraft_explosion(true, true);
         if (state.render_b_saucer) render_spacecraft_explosion(true, false);
 
+        update_prox_explosions();
+        render_prox_explosions();
+
         if (state.draw_lucky) {
             render_text_thick(state.renderer, state.luck_text, (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 75.0f},
                               25.0f, 2.0f, 25.0f);
@@ -376,7 +381,7 @@ void update(void) {
 
         if (array_list_size(state.asteroids) < 1 && !state.spawn && !state.s_saucer && !state.b_saucer) {
             if (state.enter_shop || state.reset) return;
-            if (state.stage % 2 == 1 && !state.shop.leaving) {
+            if (!state.shop.leaving) {
                 state.enter_shop = true;
                 const SDL_TimerID id = SDL_AddTimer(1000, enter_shop, NULL);
                 if (id == 0) {
@@ -538,7 +543,7 @@ void reset_state(void) {
     state.a = 0;
     state.d = 0;
     state.stage = 1;
-    state.lives = 3;
+    state.lives = 4;
     state.score = 0;
     state.prev_ast = randi(4, 6);
     state.draw_lucky = false;
@@ -562,6 +567,7 @@ void reset_state(void) {
     FIRE_COOLDOWN = 0.75f;
     HAS_SALVAGE_RIGHTS = false;
     PROJ_SPEED = 1.0f;
+    PROX_STACK = 0;
 }
 
 void start_game_over(void) {
@@ -819,7 +825,7 @@ void handle_input(void) {
                         clear_all();
                         break;
                     case SDL_SCANCODE_R:
-                        RADAR_STACKS++;
+                        PROX_STACK++;
                         break;
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
@@ -907,7 +913,7 @@ void handle_coins_world(void) {
             continue;
         }
 
-        if (v2_dist_sqr(state.ship.position, c->pos) < 450) {
+        if (v2_dist_sqr(state.ship.position, c->pos) < 550) {
             state.coins++;
             array_list_remove(state.a_coins, i);
             i--;
@@ -1162,6 +1168,42 @@ void init_hyperspace(void) {
     }
 }
 
+void update_prox_explosions(void) {
+    for (size_t i = 0; i < array_list_size(state.prox_explosions); i++) {
+        prox_explosion *e = array_list_get(state.prox_explosions, i);
+        e->uptime += (float) global_time.dt;
+        if (e->uptime >= e->ttl) {
+            array_list_remove(state.prox_explosions, i);
+            i--;
+        }
+    }
+}
+
+void render_prox_explosions(void) {
+    for (int i = 0; i < array_list_size(state.prox_explosions); i++) {
+        const prox_explosion *e = array_list_get(state.prox_explosions, i);
+        const float t = e->uptime / e->ttl;
+
+        for (int p = 0; p < 20; p++) {
+            const v2 dir = e->particles[p].dir;
+            const float speed = e->particles[p].speed;
+            const float dist = speed * t;
+            const float x = e->pos.x + dir.x * dist;
+            const float y = e->pos.y + dir.y * dist;
+
+            if (t < 0.33f)
+                SDL_SetRenderDrawColor(state.renderer, 255, 120, 0, 255);
+            else if (t < 0.66f)
+                SDL_SetRenderDrawColor(state.renderer, 200, 40, 40, 255);
+            else
+                SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+
+            SDL_RenderPoint(state.renderer, x, y);
+        }
+    }
+}
+
+
 void projectile_collision_check(void) {
     for (int i = 0; i < array_list_size(state.projectiles); i++) {
         projectile *p = array_list_get(state.projectiles, i);
@@ -1173,12 +1215,12 @@ void projectile_collision_check(void) {
 
         // Projectile vs. saucer collision
         if (state.s_saucer) {
-            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 265 * (float)SCALE && p->ttl < 1.85f) {
+            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 350 + (float)PROX_STACK * 1000.0f * (float)SCALE && p->ttl < 1.85f) {
                 on_saucer_hit(true);
             }
         }
         if (state.b_saucer) {
-            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 290 * (float)SCALE && p->ttl < 1.85f) {
+            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 450 + (float)PROX_STACK * 1000.0f * (float)SCALE && p->ttl < 1.85f) {
                 on_saucer_hit(false);
             }
         }
@@ -1188,10 +1230,32 @@ void projectile_collision_check(void) {
             const asteroid *a = array_list_get(state.asteroids, j);
 
             const float check_distance = get_asteroid_check_distance(a->size);
+            const float fuse_range_bonus = (float)PROX_STACK * 1000.0f;
 
-            if (v2_dist_sqr(p->pos, a->position) < check_distance) {
+            if (v2_dist_sqr(p->pos, a->position) < check_distance + fuse_range_bonus) {
                 //highlight_collision(p->pos);
                 if (a->is_phased) continue;
+
+                for (int k = 0; k < PROX_STACK; k++) {
+                    if (!p->from_ship) continue;
+                    prox_explosion e = {
+                        .pos = p->pos,
+                        .uptime = 0.0f,
+                        .ttl = 0.6f
+                    };
+
+                    for (int w = 0; w < 20; w++) {
+                        const float angle_offset = ((float)rand() / RAND_MAX - 0.5f) * (float)M_PI * 0.3f;
+                        const float base_angle = atan2f(p->vel.y, p->vel.x);
+                        const float angle = base_angle + angle_offset;
+
+                        const float speed = 80.0f + (float)(rand() % 60);
+                        e.particles[w].dir = (v2){ cosf(angle), sinf(angle) };
+                        e.particles[w].speed = speed;
+                    }
+                    array_list_add(state.prox_explosions, &e);
+                }
+
                 if (HAS_PIERCING) {
                     if (p->cooldown <= 0.0f) {
                         p->cooldown = 0.25f;
@@ -1496,6 +1560,7 @@ void cleanup(void) {
     array_list_free(state.projectiles);
     array_list_free(state.asteroid_particles);
     array_list_free(state.a_coins);
+    array_list_free(state.prox_explosions);
     SDL_DestroyTexture(state.intermediate_texture);
     SDL_DestroyWindow(state.window);
     SDL_Quit();

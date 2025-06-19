@@ -1082,6 +1082,55 @@ void draw_energy_capacitor_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
         SDL_RenderLine(renderer, cx - size * 0.08f, mark_y, cx + size * 0.08f, mark_y);
     }
 }
+
+void draw_proximity_fuse_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float radius = rect->w * 0.12f;
+
+    // Draw central projectile
+    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255); // Yellow
+    const SDL_FRect projectile = {
+        cx - radius, cy - radius,
+        radius * 2, radius * 2
+    };
+    SDL_RenderFillRect(renderer, &projectile);
+
+    // Draw explosion arcs
+    SDL_SetRenderDrawColor(renderer, 255, 100, 0, 255); // Orange
+    for (int i = 0; i < 8; ++i) {
+        const float angle = (float)i * (float)M_PI / 4.0f;
+        const float x1 = cx + cosf(angle) * radius * 1.5f;
+        const float y1 = cy + sinf(angle) * radius * 1.5f;
+        const float x2 = cx + cosf(angle) * radius * 2.5f;
+        const float y2 = cy + sinf(angle) * radius * 2.5f;
+        SDL_RenderLine(renderer, x1, y1, x2, y2);
+    }
+
+    // Draw asteroid (gray blob) nearby
+    /*SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+    const SDL_FRect asteroid = {
+        cx + radius * 2.2f, cy + radius * 1.5f,
+        radius * 1.6f, radius * 1.6f
+    };
+    SDL_RenderFillRect(renderer, &asteroid);*/
+
+    // Optional highlight around explosion radius
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 80); // Translucent white-ish ring
+    for (int i = 0; i < 10; ++i) {
+        const float r = radius * 2.8f + (float)i * 0.3f;
+        const float step = (float)M_PI * 2.0f / 20.0f;
+        for (int j = 0; j < 20; ++j) {
+            const float a1 = (float)j * step;
+            const float a2 = ((float)j + 1.0f) * step;
+            const float x1 = cx + cosf(a1) * r;
+            const float y1 = cy + sinf(a1) * r;
+            const float x2 = cx + cosf(a2) * r;
+            const float y2 = cy + sinf(a2) * r;
+            SDL_RenderLine(renderer, x1, y1, x2, y2);
+        }
+    }
+}
 // END CLAUDE CODE
 
 void render_shop_item_icon(SDL_Renderer *renderer, const shop_item_container *container) {
@@ -1117,6 +1166,8 @@ void render_shop_item_icon(SDL_Renderer *renderer, const shop_item_container *co
         draw_salvage_rights_icon(renderer, &container->icon_rect);
     } else if (strcmp(container->item.title, "ENERGY CAPACITOR") == 0) {
         draw_energy_capacitor_icon(renderer, &container->icon_rect);
+    } else if (strcmp(container->item.title, "PROXIMITY FUSE") == 0) {
+        draw_proximity_fuse_icon(renderer, &container->icon_rect);
     }
 }
 
@@ -1124,78 +1175,84 @@ void shop_item_init(void) {
     state.shop.items_list[0] = (shop_item){
         .title = "SPEED BOOST",
         .description = "INCREASE SHIP SPEED BY 5 PERCENT\nADDITIVE",
-        .price = 3,
+        .price = 1,
         .included = false
     };
     state.shop.items_list[1] = (shop_item){
         .title = "EXTRA CANNON",
         .description = "FIRE AN ADDITIONAL PROJECTILE",
-        .price = 10,
+        .price = 5,
         .included = false
     };
     state.shop.items_list[2] = (shop_item){
         .title = "WEIGHTED DICE",
         .description = "LUCKY ASTEROIDS SPAWN\n2X MORE FREQUENTLY\nMULTIPLICATIVE",
-        .price = 5,
+        .price = 2,
         .included = false
     };
     state.shop.items_list[3] = (shop_item){
         .title = "PIERCING",
         .description = "PROJECTILES PASS THROUGH\nASTEROIDS AND CAN HIT MULTIPLE TIMES",
-        .price = 10,
+        .price = 5,
         .included = false
     };
     state.shop.items_list[4] = (shop_item){
         .title = "SPARE PARTS",
         .description = "GAIN AN EXTRA LIFE",
-        .price = 5,
+        .price = 2,
         .included = false
     };
     state.shop.items_list[5] = (shop_item){
         .title = "DYNAMITE",
         .description = "CHAIN ASTEROIDS SPAWN\n2X MORE FREQUENTLY\nMULTIPLICATIVE",
-        .price = 5,
+        .price = 2,
         .included = false
     };
     state.shop.items_list[6] = (shop_item){
         .title = "SAFE WARP",
         .description = "HYPERSPACE NEVER SPAWNS\nYOU INSIDE ASTEROIDS",
-        .price = 10,
+        .price = 5,
         .included = false
     };
     state.shop.items_list[7] = (shop_item){
         .title = "MAGNET",
         .description = "PULL COINS TOWARDS YOU",
-        .price = 7,
+        .price = 3,
         .included = false
     };
     state.shop.items_list[8] = (shop_item){
         .title = "TARGET RADAR",
         .description = "PROJECTILES SEEK OUT TARGETS\n5 PERCENT ACCURACY PER STACK\nADDITIVE",
-        .price = 5,
+        .price = 2,
         .included = false
     };
     state.shop.items_list[9] = (shop_item){
         .title = "RAPID FIRE",
         .description = "REDUCE FIRING COOLDOWN\nBY 20 PERCENT\nMULTIPLICATIVE",
-        .price = 3,
+        .price = 1,
         .included = false
     };
     state.shop.items_list[10] = (shop_item){
         .title = "FLUX CAPACITOR",
         .description = "REDUCE HYPERSPACE\nCOOLDOWN BY 30\nMULTIPLICATIVE",
-        .price = 6,
+        .price = 3,
         .included = false
     };
     state.shop.items_list[11] = (shop_item){
         .title = "SALVAGE RIGHTS",
         .description = "DESTROYED SAUCERS\nDROP 2 TO 4 COINS",
-        .price = 9,
+        .price = 4,
         .included = false
     };
     state.shop.items_list[12] = (shop_item){
         .title = "ENERGY CAPACITOR",
         .description = "PROJECTILES TRAVEL\n15 PERCENT FASTER\nADDITIVE",
+        .price = 2,
+        .included = false
+    };
+    state.shop.items_list[13] = (shop_item){
+        .title = "PROXIMITY FUSE",
+        .description = "PROJECTILES EXPLODE IN SPACE\nAROUND ASTEROIDS\nLARGER RADIUS PER STACK",
         .price = 5,
         .included = false
     };
@@ -1264,13 +1321,17 @@ void shop_item_click_callback(void) {
                 SDL_Log("ENERGY CAPACITOR CLICKED");
                 PROJ_SPEED += 0.15f;
             }
+            if (strcmp(state.shop.containers[i].item.title, "PROXIMITY FUSE") == 0) {
+                SDL_Log("PROXIMITY FUSE CLICKED");
+                PROX_STACK++;
+            }
         }
     }
 }
 
 shop_item get_random_shop_item(void) {
     while (true) {
-        const int n = randi(0, 12);
+        const int n = randi(0, 13);
         if (state.shop.items_list[n].included == false) {
             if (strcmp(state.shop.items_list[n].title, "PIERCING") == 0 && HAS_PIERCING) continue;
             if (strcmp(state.shop.items_list[n].title, "SAFE WARP") == 0 && HAS_SAFE_WARP) continue;

@@ -35,11 +35,11 @@ float get_asteroid_velocity_scale(const asteroid_size size) {
 float get_asteroid_check_distance(const asteroid_size size) {
     switch (size) {
         case SMALL:
-            return 300.0f;
+            return 400.0f;
         case MEDIUM:
-            return 600.0f;
+            return 700.0f;
         case LARGE:
-            return 1100.0f;
+            return 1200.0f;
         default:
             return 0.0f;
     }
@@ -411,7 +411,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
     }
 
     const int roll = randi(1, 100);
-    if (roll < 10) {
+    if (roll < 20) {
         add_coin(a->position);
     }
 
@@ -438,7 +438,16 @@ void on_asteroid_hit(const asteroid *a, const int i) {
             base_score = 50;
             state.score += base_score * xp_multiplier;
 
-            const int split_count = a->type == SPLIT ? 3 : 2;
+            int split_count = a->type == SPLIT ? 3 : 2;
+            if (a->type != SPLIT) {
+                const float f = randf(0.0f, 1.0f);
+                if (f < 0.15f) {
+                    split_count = 0;
+                }
+                if (f < 0.4f) {
+                    split_count = 1;
+                }
+            }
             for (int j = 0; j < split_count; j++) {
                 const asteroid_type child_type = a->type == CHAIN ? CHAIN : STD;
                 add_new_asteroid_typed(SMALL, a->position, child_type);
@@ -457,7 +466,16 @@ void on_asteroid_hit(const asteroid *a, const int i) {
             base_score = 20;
             state.score += base_score * xp_multiplier;
 
-            const int split_count_2 = a->type == SPLIT ? 4 : 2;
+            int split_count_2 = a->type == SPLIT ? 4 : 2;
+            if (a->type != SPLIT) {
+                const float f = randf(0.0f, 1.0f);
+                if (f < 0.15f) {
+                    split_count_2 = 0;
+                }
+                if (f < 0.4f) {
+                    split_count_2 = 1;
+                }
+            }
             for (int j = 0; j < split_count_2; j++) {
                 const asteroid_type child_type = a->type == CHAIN ? CHAIN : STD;
                 add_new_asteroid_typed(MEDIUM, a->position, child_type);

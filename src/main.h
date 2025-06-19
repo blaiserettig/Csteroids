@@ -27,6 +27,7 @@ extern float HYPERSPACE_COOLDOWN;
 extern float FIRE_COOLDOWN;
 extern bool HAS_SALVAGE_RIGHTS;
 extern float PROJ_SPEED;
+extern int PROX_STACK;
 
 typedef struct {
     v2 position;
@@ -45,6 +46,17 @@ typedef struct {
     float g;
     float b;
 } death_line;
+
+typedef struct {
+    v2 pos;
+    v2 dir;
+    float uptime;
+    float ttl;
+    struct {
+        v2 dir;
+        float speed;
+    } particles[20];
+} prox_explosion;
 
 typedef struct {
     v2 pos;
@@ -115,6 +127,7 @@ typedef struct {
     ArrayList *projectiles;
     ArrayList *asteroid_particles;
     ArrayList *a_coins;
+    ArrayList *prox_explosions;
     button_system button_system;
     death_line ship_death_lines[5];
     death_line saucer_death_lines[12];
@@ -176,6 +189,10 @@ int load_all_audio(void);
 void reset_state(void);
 
 void update_audio_streams(void);
+
+void update_prox_explosions(void);
+
+void render_prox_explosions(void);
 
 Uint32 begin_new_stage(void *userdata, SDL_TimerID timerID, Uint32 interval);
 
