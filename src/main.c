@@ -287,8 +287,8 @@ void update(void) {
         state.pause_state_change = false;
     }
 
-    update_hyperspace();
-    render_hyperspace();
+    update_background_lines();
+    render_background_lines();
 
     if (state.state == START_MENU) {
         render_text_3d_extruded(state.renderer, "CSTEROIDS", (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 100.0f},
@@ -313,7 +313,7 @@ void update(void) {
             state.w = 0;
             state.a = 0;
             state.d = 0;
-            render_static(state.ship.position.x, state.ship.position.y, 1.0f, 200, 200, 200);
+            render_static(state.ship.position.x, state.ship.position.y, 1.0f, 200, 200, 200, 255, 10.0f);
         }
 
         if (state.player_invincible_timer > 0.0f) {
@@ -578,6 +578,26 @@ void on_ship_hit(void) {
     }
 }
 
+bool is_pos_occupied(const v2 pos) {
+    for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
+        const asteroid *asteroid = array_list_get(state.asteroids, i);
+        if (v2_dist_sqr(pos,  asteroid->position) < get_asteroid_check_distance(LARGE)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void hyperspace_warp(void) {
+    v2 rand_pos = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)};
+    if (HAS_SAFE_WARP) {
+        while (is_pos_occupied(rand_pos)) {
+            rand_pos = (v2) {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)};
+        }
+    }
+    state.ship.position = rand_pos;
+}
+
 void update_saucer(void) {
     state.small_saucer.pos.x = wrap0f(state.small_saucer.pos.x + state.small_saucer.vel.x * DEFAULT_SPEED * (float)global_time.dt, SCREEN_WIDTH);
     state.small_saucer.pos.y = wrap0f(state.small_saucer.pos.y + state.small_saucer.vel.y * DEFAULT_SPEED * (float)global_time.dt, SCREEN_HEIGHT);
@@ -668,11 +688,11 @@ void update_asteroid_explosion_particles(void) {
     }
 }
 
-void render_static(const float center_x, const float center_y, const float scale, const Uint8 r, const Uint8 g, const Uint8 b) {
+void render_static(const float center_x, const float center_y, const float scale, const Uint8 r, const Uint8 g, const Uint8 b, const Uint8 a, const float speed) {
     static float accumulated_time = 0.0f;
     accumulated_time += (float)global_time.dt;
-    const float rotation = accumulated_time * 10.0f;
-    SDL_SetRenderDrawColor(state.renderer, r, g, b, 255);
+    const float rotation = accumulated_time * speed;
+    SDL_SetRenderDrawColor(state.renderer, r, g, b, a);
 
     const int num_points = 12;
     const float base_radius = 25.0f * scale;
@@ -717,7 +737,7 @@ void handle_input(void) {
                         state.a = 1;
                         break;
                     case SDL_SCANCODE_F:
-
+                        hyperspace_warp();
                         break;
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
@@ -982,7 +1002,7 @@ Uint32 stop_saucer_exp_render(void *userdata, SDL_TimerID timerID, Uint32 interv
     return 0;
 }
 
-void update_hyperspace(void) {
+void update_background_lines(void) {
     for (int i = 0; i < 100; i++) {
         if (state.state == GAME_VIEW) {
             state.hyperspace_lines[i].z -= 0.5f;
@@ -1002,7 +1022,7 @@ void update_hyperspace(void) {
     }
 }
 
-void render_hyperspace(void) {
+void render_background_lines(void) {
     if (state.state != START_MENU) {
         SDL_SetRenderDrawColor(state.renderer, 16, 16, 16, 255);
     } else {
@@ -1287,7 +1307,7 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
                 direction.x * sin_dev + direction.y * cos_dev
             };
 
-            projectile_vel = v2_scale(rotated_direction, 6.0f);
+            projectile_vel = v2_scale(rotated_direction, 8.0f);
         } else {
             // the big saucer is firing it, so aim randomly
             projectile_vel = v2_scale((v2){-sinf(rand_angle), cosf(rand_angle)}, 6.0f);

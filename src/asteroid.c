@@ -39,7 +39,7 @@ float get_asteroid_check_distance(const asteroid_size size) {
         case MEDIUM:
             return 600.0f;
         case LARGE:
-            return 1000.0f;
+            return 1100.0f;
         default:
             return 0.0f;
     }
@@ -232,15 +232,20 @@ void render_asteroids(void) {
                 break;
             case DBLXP:
                 r = a->color - 60;
-                g = (a->color + 80 > 255) ? 255 : a->color + 80;
+                g = a->color + 80 > 255 ? 255 : a->color + 80;
                 b = a->color - 60;
                 draw_2x_icon(center_x, center_y, icon_scale, r, g, b);
                 break; //  green tint
             case CHAIN:
-                r = (a->color + 80 > 255) ? 255 : a->color + 80;
+                r = a->color + 80 > 255 ? 255 : a->color + 80;
                 g = a->color - 60;
                 b = a->color - 60;
                 draw_chain_icon(center_x, center_y, icon_scale, r, g, b);
+                /*SDL_RenderPoint(state.renderer, center_x - 150, center_y);
+                SDL_RenderPoint(state.renderer, center_x + 150, center_y);
+                SDL_RenderPoint(state.renderer, center_x, center_y + 150);
+                SDL_RenderPoint(state.renderer, center_x, center_y - 150);*/
+                render_static(center_x, center_y, 4.5f, 255, 100, 100, 20, 5.0f);
                 break; //  red tint
             case ARMOR:
                 r = g = b = a->color - 80;
@@ -252,7 +257,7 @@ void render_asteroids(void) {
                 } else {
                     r = a->color - 60;
                     g = a->color - 60;
-                    b = (a->color + 80 > 255) ? 255 : a->color + 80; // blue tint
+                    b = a->color + 80 > 255 ? 255 : a->color + 80; // blue tint
                 }
                 draw_phaser_icon(center_x, center_y, icon_scale, r, g, b);
                 break;
@@ -304,7 +309,7 @@ void render_asteroids(void) {
         if (a->type == ARMOR && a->armor_hits > 1) {
             SDL_SetRenderDrawColor(state.renderer, 200, 200, 200, 255);
             for (int h = 0; h < a->armor_hits - 1; h++) {
-                const float angle = ((float) h * 2.0f * (float) M_PI) / ((float) a->armor_hits - 1);
+                const float angle = (float) h * 2.0f * (float) M_PI / ((float) a->armor_hits - 1);
                 const float dot_x = a->position.x + cosf(angle) * ((float) a->size * 15.0f + 10.0f);
                 const float dot_y = a->position.y + sinf(angle) * ((float) a->size * 15.0f + 10.0f);
                 SDL_RenderPoint(state.renderer, dot_x, dot_y);
@@ -397,8 +402,8 @@ void on_asteroid_hit(const asteroid *a, const int i) {
     const int last_div = state.score / 10000;
 
     if (a->type == VAMPIRE) {
-        const int stolen_points = (a->size == LARGE) ? 100 : (a->size == MEDIUM) ? 50 : 25;
-        state.score = (state.score > stolen_points) ? state.score - stolen_points : 0;
+        const int stolen_points = a->size == LARGE ? 100 : a->size == MEDIUM ? 50 : 25;
+        state.score = state.score > stolen_points ? state.score - stolen_points : 0;
     }
 
     if (a->type == STATIC) {
@@ -406,14 +411,14 @@ void on_asteroid_hit(const asteroid *a, const int i) {
     }
 
     const int roll = randi(1, 100);
-    if (roll < 3) {
+    if (roll < 4) {
         add_coin(a->position);
     }
 
     add_particles(a->position, randi(15, 20), a->r, a->g, a->b);
 
     int base_score = 0;
-    const int xp_multiplier = (a->type == DBLXP) ? 2 : 1;
+    const int xp_multiplier = a->type == DBLXP ? 2 : 1;
 
     switch (a->size) {
         case SMALL:
@@ -433,9 +438,9 @@ void on_asteroid_hit(const asteroid *a, const int i) {
             base_score = 50;
             state.score += base_score * xp_multiplier;
 
-            const int split_count = (a->type == SPLIT) ? 3 : 2;
+            const int split_count = a->type == SPLIT ? 3 : 2;
             for (int j = 0; j < split_count; j++) {
-                const asteroid_type child_type = (a->type == CHAIN) ? CHAIN : STD;
+                const asteroid_type child_type = a->type == CHAIN ? CHAIN : STD;
                 add_new_asteroid_typed(SMALL, a->position, child_type);
             }
 
@@ -452,9 +457,9 @@ void on_asteroid_hit(const asteroid *a, const int i) {
             base_score = 20;
             state.score += base_score * xp_multiplier;
 
-            const int split_count_2 = (a->type == SPLIT) ? 4 : 2;
+            const int split_count_2 = a->type == SPLIT ? 4 : 2;
             for (int j = 0; j < split_count_2; j++) {
-                const asteroid_type child_type = (a->type == CHAIN) ? CHAIN : STD;
+                const asteroid_type child_type = a->type == CHAIN ? CHAIN : STD;
                 add_new_asteroid_typed(MEDIUM, a->position, child_type);
             }
 
@@ -469,7 +474,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
     }
 
     if (a->type == CHAIN) {
-        trigger_chain_reaction(a->position, 100.0f); // 100 pixel radius
+        trigger_chain_reaction(a->position, 150.0f); // 100 pixel radius
     }
 
     if (state.score / 10000 != last_div) {
@@ -541,7 +546,7 @@ static const asteroid_spawn_entry base_spawn_table[] = {
 asteroid_type get_random_asteroid_type(const int stage) {
     float weights[SPAWN_TABLE_SIZE];
     float total_weight = 0.0f;
-    const float late_stage_mult = 1.0f + (float)stage * 0.025f;
+    const float late_stage_mult = 1.0f + (float)stage * 0.05f;
 
     for (int i = 0; i < SPAWN_TABLE_SIZE; i++) {
         weights[i] = base_spawn_table[i].base_weight;

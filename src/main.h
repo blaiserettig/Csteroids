@@ -179,7 +179,7 @@ void update_asteroid_destruction_timers();
 
 void start_game_over(void);
 
-void render_static(float center_x, float center_y, float scale, Uint8 r, Uint8 g, Uint8 b);
+void render_static(float center_x, float center_y, float scale, Uint8 r, Uint8 g, Uint8 b, Uint8 a, float speed);
 
 void start_timer(float seconds);
 
@@ -222,9 +222,9 @@ void render_coins_ui(v2 pos);
 
 void render_saucer(v2 pos, float scale);
 
-void update_hyperspace(void);
+void update_background_lines(void);
 
-void render_hyperspace(void);
+void render_background_lines(void);
 
 void init_hyperspace(void);
 
