@@ -411,7 +411,7 @@ void on_asteroid_hit(const asteroid *a, const int i) {
     }
 
     const int roll = randi(1, 100);
-    if (roll < 4) {
+    if (roll < 10) {
         add_coin(a->position);
     }
 

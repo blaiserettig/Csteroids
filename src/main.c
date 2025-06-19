@@ -41,6 +41,10 @@ bool HAS_SAFE_WARP = false;
 bool HAS_PIERCING = false;
 bool HAS_MAGNET = false;
 int RADAR_STACKS = 1;
+float HYPERSPACE_COOLDOWN = 5.0f;
+float FIRE_COOLDOWN = 0.75f;
+bool HAS_SALVAGE_RIGHTS = false;
+float PROJ_SPEED = 1.0f;
 
 game_state state = {0};
 
@@ -387,6 +391,9 @@ void update(void) {
                 SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
             }
         }
+
+        state.hyperspace_cooldown -= (float) global_time.dt;
+        state.fire_cooldown -= (float) global_time.dt;
     }
 
     if (state.state == OVER_MENU) {
@@ -540,6 +547,8 @@ void reset_state(void) {
     state.coins = 0;
     state.enter_shop = false;
     state.shop.leaving = false;
+    state.hyperspace_cooldown = 0.0f;
+    state.fire_cooldown = 0.0f;
 
     ADDED_SPEED = 1.0f;
     FIRE_STREAMS = 1;
@@ -549,6 +558,10 @@ void reset_state(void) {
     HAS_PIERCING = false;
     HAS_MAGNET = false;
     RADAR_STACKS = 0;
+    HYPERSPACE_COOLDOWN = 5.0f;
+    FIRE_COOLDOWN = 0.75f;
+    HAS_SALVAGE_RIGHTS = false;
+    PROJ_SPEED = 1.0f;
 }
 
 void start_game_over(void) {
@@ -596,6 +609,11 @@ bool is_pos_occupied(const v2 pos) {
 }
 
 void hyperspace_warp(void) {
+    if (state.hyperspace_cooldown > 0) {
+        play_sound_effect(AUDIO_STREAM_SFX, audio_clips.no);
+        return;
+    }
+    state.hyperspace_cooldown = HYPERSPACE_COOLDOWN;
     v2 rand_pos = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)};
     if (HAS_SAFE_WARP) {
         while (is_pos_occupied(rand_pos)) {
@@ -670,8 +688,8 @@ void update_ship(void) {
     apply_friction(&state.ship.velocity.x, 0.06f);
     apply_friction(&state.ship.velocity.y, 0.06f);
 
-    state.ship.velocity.x = clampf(state.ship.velocity.x, -10, 10);
-    state.ship.velocity.y = clampf(state.ship.velocity.y, -10, 10);
+    state.ship.velocity.x = clampf(state.ship.velocity.x, -10 * ADDED_SPEED, 10 * ADDED_SPEED);
+    state.ship.velocity.y = clampf(state.ship.velocity.y, -10 * ADDED_SPEED, 10 * ADDED_SPEED);
 }
 
 asteroid* find_nearest_asteroid(const v2 projectile_pos) {
@@ -808,7 +826,14 @@ void handle_input(void) {
                         break;
                     case SDL_SCANCODE_SPACE:
                         const SDL_KeyboardEvent e = event.key;
-                        if (!e.repeat && !state.dead && !global_time.is_paused) add_projectile(state.ship.position, true, false);
+                        if (!e.repeat && !state.dead && !global_time.is_paused) {
+                            if (state.fire_cooldown > 0) {
+                                play_sound_effect(AUDIO_STREAM_SFX, audio_clips.no);
+                                return;
+                            }
+                            state.fire_cooldown = FIRE_COOLDOWN;
+                            add_projectile(state.ship.position, true, false);
+                        }
                         break;
                     default:
                         break;
@@ -882,7 +907,7 @@ void handle_coins_world(void) {
             continue;
         }
 
-        if (v2_dist_sqr(state.ship.position, c->pos) < 400) {
+        if (v2_dist_sqr(state.ship.position, c->pos) < 450) {
             state.coins++;
             array_list_remove(state.a_coins, i);
             i--;
@@ -1059,7 +1084,12 @@ void on_saucer_hit(const bool small) {
         add_saucer_death_lines(true, 25.0f);
         state.s_saucer = false;
         state.render_s_saucer = true;
-        add_coin(state.small_saucer.pos);
+        if (HAS_SALVAGE_RIGHTS) {
+            const int n = randi(2, 4);
+            for (int i = 0; i < n; i++) {
+                add_coin(state.small_saucer.pos);
+            }
+        }
         const SDL_TimerID id = SDL_AddTimer(3000, stop_saucer_exp_render, NULL);
         if (id == 0) {
             SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
@@ -1070,7 +1100,12 @@ void on_saucer_hit(const bool small) {
         add_saucer_death_lines(true, 25.0f);
         state.b_saucer = false;
         state.render_b_saucer = true;
-        add_coin(state.big_saucer.pos);
+        if (HAS_SALVAGE_RIGHTS) {
+            const int n = randi(2, 4);
+            for (int i = 0; i < n; i++) {
+                add_coin(state.big_saucer.pos);
+            }
+        }
         const SDL_TimerID id = SDL_AddTimer(3000, stop_saucer_exp_render, NULL);
         if (id == 0) {
             SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
@@ -1357,7 +1392,7 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
                 ship_vel.x * sin_offset + ship_vel.y * cos_offset
             };
 
-            projectile_vel = v2_scale(rotated_vel, 8.0f);
+            projectile_vel = v2_scale(v2_scale(rotated_vel, 8.0f), PROJ_SPEED);
 
             if (num_projectiles > 1) {
                 const float pos_offset = 3.0f * (float)i / (float)(num_projectiles - 1) - 1.5f;

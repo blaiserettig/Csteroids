@@ -23,6 +23,10 @@ extern bool HAS_SAFE_WARP;
 extern bool HAS_PIERCING;
 extern bool HAS_MAGNET;
 extern int RADAR_STACKS;
+extern float HYPERSPACE_COOLDOWN;
+extern float FIRE_COOLDOWN;
+extern bool HAS_SALVAGE_RIGHTS;
+extern float PROJ_SPEED;
 
 typedef struct {
     v2 position;
@@ -136,6 +140,9 @@ typedef struct {
     bool draw_lucky;
     bool draw_lucky_timer;
     char luck_text[32];
+
+    float hyperspace_cooldown;
+    float fire_cooldown;
 } game_state;
 
 extern game_state state;
