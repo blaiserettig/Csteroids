@@ -32,7 +32,7 @@ typedef struct {
     SDL_FRect inner_ship_rect;
     float ship_rotation;
     shop_item_container containers[3];
-    shop_item items_list[8];
+    shop_item items_list[9];
     int item_count;
     size_t button_start_idx;
 

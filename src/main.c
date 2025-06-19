@@ -14,6 +14,9 @@
 #include "SDL3/SDL_timer.h"
 
 #include "main.h"
+
+#include <float.h>
+
 #include "util/math_ext.h"
 #include "util/array_list.h"
 
@@ -37,6 +40,7 @@ float CHAIN_CHANCE = 1.0f;
 bool HAS_SAFE_WARP = false;
 bool HAS_PIERCING = false;
 bool HAS_MAGNET = false;
+int RADAR_STACKS = 1;
 
 game_state state = {0};
 
@@ -122,7 +126,7 @@ void init_buttons(void) {
 
 int main(int argc, char *argv[]) {
 
-    const unsigned long seed = mix(time(NULL), SDL_GetTicks(), clock());
+    const unsigned long seed = mix(time(NULL), SDL_GetTicks() + getpid(), clock());
     srand(seed);
 
     reset_state();
@@ -544,6 +548,7 @@ void reset_state(void) {
     HAS_SAFE_WARP = false;
     HAS_PIERCING = false;
     HAS_MAGNET = false;
+    RADAR_STACKS = 0;
 }
 
 void start_game_over(void) {
@@ -669,9 +674,52 @@ void update_ship(void) {
     state.ship.velocity.y = clampf(state.ship.velocity.y, -10, 10);
 }
 
+asteroid* find_nearest_asteroid(const v2 projectile_pos) {
+    asteroid* nearest = NULL;
+    float min = FLT_MAX;
+
+    for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
+        asteroid* ast = array_list_get(state.asteroids, i);
+        const float dist_sq = v2_dist_sqr(projectile_pos, ast->position);
+
+        if (dist_sq < min) {
+            min = dist_sq;
+            nearest = ast;
+        }
+    }
+    return nearest;
+}
+
 void update_projectiles(void) {
     for (size_t i = 0; i < array_list_size(state.projectiles); i++) {
         projectile *p = array_list_get(state.projectiles, i);
+
+        if (p->has_homing && p->has_target && p->from_ship) {
+            const asteroid* target = find_nearest_asteroid(p->pos);
+            if (target) {
+                p->target_pos = target->position;
+
+                const float target_angle = atan2f(p->target_pos.y - p->pos.y,
+                                          p->target_pos.x - p->pos.x);
+
+                const float current_angle = atan2f(p->vel.y, p->vel.x);
+
+                float angle_diff = target_angle - current_angle;
+
+                while (angle_diff > M_PI) angle_diff -= 2.0f * (float)M_PI;
+                while (angle_diff < -M_PI) angle_diff += 2.0f * (float)M_PI;
+
+                const float max_turn_rate = p->homing_accuracy * 3.0f;
+                const float turn_amount = fmaxf(-max_turn_rate, fminf(max_turn_rate, angle_diff)) * (float)global_time.dt;
+
+                const float new_angle = current_angle + turn_amount;
+                const float speed = sqrtf(p->vel.x * p->vel.x + p->vel.y * p->vel.y);
+
+                p->vel.x = cosf(new_angle) * speed;
+                p->vel.y = sinf(new_angle) * speed;
+            }
+        }
+
         p->pos.x = wrap0f(p->pos.x + p->vel.x * DEFAULT_SPEED * (float)global_time.dt, SCREEN_WIDTH);
         p->pos.y = wrap0f(p->pos.y + p->vel.y * DEFAULT_SPEED * (float)global_time.dt, SCREEN_HEIGHT);
         p->ttl -= (float) global_time.dt;
@@ -751,6 +799,9 @@ void handle_input(void) {
                         break;
                     case SDL_SCANCODE_E:
                         clear_all();
+                        break;
+                    case SDL_SCANCODE_R:
+                        RADAR_STACKS++;
                         break;
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
@@ -901,7 +952,7 @@ void render_coins_ui(const v2 pos) {
     render_coin(state.renderer, pos, 10.0f);
     char coins[8];
     snprintf(coins, 8, "%d", state.coins);
-    const v2 num_pos = (v2) {pos.x + 30, pos.y - 10};
+    const v2 num_pos = (v2) {pos.x + 35, pos.y - 10};
     render_text(state.renderer, coins, num_pos, 20.0f);
 }
 
@@ -1344,11 +1395,37 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
             projectile_vel = v2_scale((v2){-sinf(rand_angle), cosf(rand_angle)}, 6.0f);
         }
 
+        bool has;
+        float acc;
+        v2 t_pos = (v2) {NAN, NAN};
+        bool tar;
+
+        if (RADAR_STACKS > 0) {
+            has = true;
+            acc = fminf((float)RADAR_STACKS * 0.05f, 1.0f);
+            tar = false;
+
+            const asteroid* target = find_nearest_asteroid(projectile_pos);
+            if (target) {
+                tar = true;
+                t_pos = target->position;
+            }
+        } else {
+            has = false;
+            acc = 0.0f;
+            tar = false;
+        }
+
         array_list_add(state.projectiles, &(projectile){
                            .pos = projectile_pos,
                            .ttl = 2.0f,
                            .vel = projectile_vel,
-                           .cooldown = 0.0f
+                           .cooldown = 0.0f,
+                           .has_homing = has,
+                           .homing_accuracy = acc,
+                           .target_pos = t_pos,
+                           .has_target = tar,
+                           .from_ship = from_ship
                        });
     }
 

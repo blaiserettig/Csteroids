@@ -22,6 +22,7 @@ extern float CHAIN_CHANCE;
 extern bool HAS_SAFE_WARP;
 extern bool HAS_PIERCING;
 extern bool HAS_MAGNET;
+extern int RADAR_STACKS;
 
 typedef struct {
     v2 position;
@@ -46,6 +47,11 @@ typedef struct {
     v2 vel;
     float ttl;
     float cooldown;
+    bool has_homing;
+    float homing_accuracy;
+    v2 target_pos;
+    bool has_target;
+    bool from_ship;
 } projectile;
 
 typedef struct {
