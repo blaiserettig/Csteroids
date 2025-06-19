@@ -299,7 +299,7 @@ void draw_piercing_projectiles_icon(SDL_Renderer *renderer, const SDL_FRect *rec
 
 void draw_spare_parts_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
     const float cx = rect->x + rect->w * 0.5f;
-    const float cy = rect->y + rect->h * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f - 25;
     const float size = rect->w * 0.7f;
 
     SDL_SetRenderDrawColor(renderer, 220, 50, 50, 255);
@@ -446,6 +446,87 @@ void draw_safe_warp_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
         cx + check_size * 0.3f, cy - check_size * 0.2f);*/
 }
 
+void draw_magnet_icon(SDL_Renderer *renderer, const SDL_FRect *rect) {
+    const float cx = rect->x + rect->w * 0.5f;
+    const float cy = rect->y + rect->h * 0.5f;
+    const float size = rect->w * 0.7f;
+
+    SDL_SetRenderDrawColor(renderer, 180, 180, 180, 255);
+
+    const SDL_FRect left_arm = {
+        cx - size * 0.4f, cy - size * 0.4f,
+        size * 0.2f, size * 0.6f
+    };
+    SDL_RenderFillRect(renderer, &left_arm);
+
+    const SDL_FRect right_arm = {
+        cx + size * 0.2f, cy - size * 0.4f,
+        size * 0.2f, size * 0.6f
+    };
+    SDL_RenderFillRect(renderer, &right_arm);
+
+    const SDL_FRect bottom = {
+        cx - size * 0.4f, cy + size * 0.1f,
+        size * 0.8f, size * 0.1f
+    };
+    SDL_RenderFillRect(renderer, &bottom);
+
+    SDL_SetRenderDrawColor(renderer, 200, 50, 50, 255);
+    const SDL_FRect north_pole = {
+        cx - size * 0.4f, cy - size * 0.4f,
+        size * 0.2f, size * 0.2f
+    };
+    SDL_RenderFillRect(renderer, &north_pole);
+
+    SDL_SetRenderDrawColor(renderer, 50, 50, 200, 255);
+    const SDL_FRect south_pole = {
+        cx + size * 0.2f, cy - size * 0.4f,
+        size * 0.2f, size * 0.2f
+    };
+    SDL_RenderFillRect(renderer, &south_pole);
+
+    SDL_SetRenderDrawColor(renderer, 100, 255, 100, 255);
+
+    for (int i = 0; i < 6; i++) {
+        const float curve_offset = ((float)i - 2.5f) * size * 0.08f;
+        const float start_x = cx - size * 0.3f;
+        const float start_y = cy - size * 0.3f + curve_offset + 30;
+        const float end_x = cx + size * 0.3f;
+
+        for (int j = 0; j < 10; j++) {
+            const float t = (float)j / 9.0f;
+            const float next_t = (float)(j + 1) / 9.0f;
+
+            const float curve_height = size * 0.15f * sinf(t * (float)M_PI);
+            const float next_curve_height = size * 0.15f * sinf(next_t * (float)M_PI);
+
+            const float x1 = start_x + t * (end_x - start_x);
+            const float y1 = start_y - curve_height;
+            const float x2 = start_x + next_t * (end_x - start_x);
+            const float y2 = start_y - next_curve_height;
+
+            SDL_RenderLine(renderer, x1, y1, x2, y2);
+        }
+    }
+
+    // Draw pole labels
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+    // N label (simplified as a small rectangle)
+    const SDL_FRect n_label = {
+        cx - size * 0.35f, cy - size * 0.35f,
+        size * 0.1f, size * 0.1f
+    };
+    SDL_RenderRect(renderer, &n_label);
+
+    // S label (simplified as a small rectangle)
+    const SDL_FRect s_label = {
+        cx + size * 0.25f, cy - size * 0.35f,
+        size * 0.1f, size * 0.1f
+    };
+    SDL_RenderRect(renderer, &s_label);
+}
+
 void render_shop_item_icon(SDL_Renderer *renderer, const shop_item_container *container) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderFillRect(renderer, &container->icon_rect);
@@ -467,6 +548,8 @@ void render_shop_item_icon(SDL_Renderer *renderer, const shop_item_container *co
         draw_dynamite_icon(renderer, &container->icon_rect);
     } else if (strcmp(container->item.title, "SAFE WARP") == 0) {
         draw_safe_warp_icon(renderer, &container->icon_rect);
+    } else if (strcmp(container->item.title, "MAGNET") == 0) {
+        draw_magnet_icon(renderer, &container->icon_rect);
     }
 }
 
@@ -513,6 +596,12 @@ void shop_item_init(void) {
         .price = 10,
         .included = false
     };
+    state.shop.items_list[7] = (shop_item){
+        .title = "MAGNET",
+        .description = "PULL COINS TOWARDS YOU",
+        .price = 7,
+        .included = false
+    };
 }
 
 void shop_item_click_callback(void) {
@@ -554,13 +643,17 @@ void shop_item_click_callback(void) {
                 SDL_Log("SAFE WARP CLICKED");
                 HAS_SAFE_WARP = true;
             }
+            if (strcmp(state.shop.containers[i].item.title, "MAGNET") == 0) {
+                SDL_Log("MAGNET CLICKED");
+                HAS_MAGNET = true;
+            }
         }
     }
 }
 
 shop_item get_random_shop_item(void) {
     while (true) {
-        const int n = randi(0, 6);
+        const int n = randi(0, 7);
         if (state.shop.items_list[n].included == false) {
             state.shop.items_list[n].included = true;
             return state.shop.items_list[n];

@@ -36,6 +36,7 @@ float LUCKY_CHANCE = 1.0f;
 float CHAIN_CHANCE = 1.0f;
 bool HAS_SAFE_WARP = false;
 bool HAS_PIERCING = false;
+bool HAS_MAGNET = false;
 
 game_state state = {0};
 
@@ -542,6 +543,7 @@ void reset_state(void) {
     CHAIN_CHANCE = 1.0f;
     HAS_SAFE_WARP = false;
     HAS_PIERCING = false;
+    HAS_MAGNET = false;
 }
 
 void start_game_over(void) {
@@ -581,7 +583,7 @@ void on_ship_hit(void) {
 bool is_pos_occupied(const v2 pos) {
     for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
         const asteroid *asteroid = array_list_get(state.asteroids, i);
-        if (v2_dist_sqr(pos,  asteroid->position) < get_asteroid_check_distance(LARGE)) {
+        if (v2_dist_sqr(pos,  asteroid->position) < get_asteroid_check_distance(LARGE) + 100) {
             return true;
         }
     }
@@ -716,6 +718,14 @@ void render_static(const float center_x, const float center_y, const float scale
     }
 }
 
+void clear_all(void) {
+    for (size_t i = 0; i < array_list_size(state.asteroids); i++) {
+        const asteroid *a = array_list_get(state.asteroids, i);
+        on_asteroid_hit(a, (int)i);
+        i--;
+    }
+}
+
 void handle_input(void) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -738,6 +748,9 @@ void handle_input(void) {
                         break;
                     case SDL_SCANCODE_F:
                         hyperspace_warp();
+                        break;
+                    case SDL_SCANCODE_E:
+                        clear_all();
                         break;
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
@@ -772,7 +785,6 @@ void handle_input(void) {
     }
 }
 
-
 void handle_coins_world(void) {
     for (size_t i = 0; i < array_list_size(state.a_coins); i++) {
         s_coin *c = array_list_get(state.a_coins, i);
@@ -792,6 +804,25 @@ void handle_coins_world(void) {
 
         if (should_render) {
             render_coin(state.renderer, c->pos, 10.0f);
+        }
+
+        if (HAS_MAGNET) {
+            v2 direction = {
+                state.ship.position.x - c->pos.x,
+                state.ship.position.y - c->pos.y
+            };
+
+            const float distance = sqrtf(direction.x * direction.x + direction.y * direction.y);
+
+            if (distance > 0.1f) {
+                direction.x /= distance;
+                direction.y /= distance;
+
+                const float speed = 60.0f;
+
+                c->pos.x += direction.x * speed * (float)global_time.dt;
+                c->pos.y += direction.y * speed * (float)global_time.dt;
+            }
         }
 
         if (c->ttl <= 0) {

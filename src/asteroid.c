@@ -546,7 +546,7 @@ static const asteroid_spawn_entry base_spawn_table[] = {
 asteroid_type get_random_asteroid_type(const int stage) {
     float weights[SPAWN_TABLE_SIZE];
     float total_weight = 0.0f;
-    const float late_stage_mult = 1.0f + (float)stage * 0.05f;
+    const float late_stage_mult = 1.0f + (float)stage * 0.1f;
 
     for (int i = 0; i < SPAWN_TABLE_SIZE; i++) {
         weights[i] = base_spawn_table[i].base_weight;

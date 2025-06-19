@@ -21,6 +21,7 @@ extern float LUCKY_CHANCE;
 extern float CHAIN_CHANCE;
 extern bool HAS_SAFE_WARP;
 extern bool HAS_PIERCING;
+extern bool HAS_MAGNET;
 
 typedef struct {
     v2 position;
