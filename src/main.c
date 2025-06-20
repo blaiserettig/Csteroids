@@ -110,13 +110,16 @@ void init_buttons(void) {
                               (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f - 32, 128, 64}, "START",
                               start_game, START_MENU);
     button_system_add_default(&state.button_system,
+                          (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 48, 128, 64}, "HOW TO\nPLAY",
+                          set_instructions_active, START_MENU);
+    button_system_add_default(&state.button_system,
                               (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f - 32, 128, 64}, "RESTART",
                               reset_game, OVER_MENU);
     button_system_add_default(&state.button_system,
                           (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f - 32, 128, 64}, "RESUME",
                           unpause_game, PAUSE_MENU);
     button_system_add_default(&state.button_system,
-                              (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 48.0f, 128, 64}, "QUIT",
+                              (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 128.0f, 128, 64}, "QUIT",
                               end_game, START_MENU);
     button_system_add_default(&state.button_system,
                           (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 48.0f, 128, 64}, "QUIT",
@@ -127,6 +130,15 @@ void init_buttons(void) {
     button_system_add_default(&state.button_system,
                       (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 400.0f, 128, 64}, "DONE",
                       exit_shop, SHOP_MENU);
+    button_system_add_default(&state.button_system,
+                  (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 400.0f, 128, 64}, "RETURN",
+                  set_instructions_inactive, TUTORIAL_SCREEN);
+    button_system_add_default(&state.button_system,
+              (SDL_FRect){SCREEN_WIDTH / 2.0f - 144, SCREEN_HEIGHT / 2.0f + 300.0f, 128, 64}, "PREV",
+              decrement_instructions, TUTORIAL_SCREEN);
+    button_system_add_default(&state.button_system,
+              (SDL_FRect){SCREEN_WIDTH / 2.0f + 16, SCREEN_HEIGHT / 2.0f + 300.0f, 128, 64}, "NEXT",
+              increment_instructions, TUTORIAL_SCREEN);
 }
 
 int main(int argc, char *argv[]) {
@@ -302,8 +314,8 @@ void update(void) {
     render_background_lines();
 
     if (state.state == START_MENU) {
-        render_text_3d_extruded(state.renderer, "CSTEROIDS", (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 100.0f},
-                                35.0f);
+        render_text_3d_extruded(state.renderer, "CSTEROIDS", (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 150.0f},
+                                75.0f);
     }
 
     if (state.state == GAME_VIEW) {
@@ -396,10 +408,10 @@ void update(void) {
                 SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
             }
         }
-
-        state.hyperspace_cooldown -= (float) global_time.dt;
-        state.fire_cooldown -= (float) global_time.dt;
     }
+
+    state.hyperspace_cooldown -= (float) global_time.dt;
+    state.fire_cooldown -= (float) global_time.dt;
 
     if (state.state == OVER_MENU) {
         render_text_3d_extruded(state.renderer, "GAME OVER",
@@ -409,6 +421,10 @@ void update(void) {
     if (state.state == SHOP_MENU || (state.state == PAUSE_MENU && state.previous_state == SHOP_MENU)) {
         update_shop();
         render_shop();
+    }
+
+    if (state.state == TUTORIAL_SCREEN) {
+        render_how_to_play();
     }
 
     if (global_time.is_paused) {
@@ -554,6 +570,8 @@ void reset_state(void) {
     state.shop.leaving = false;
     state.hyperspace_cooldown = 0.0f;
     state.fire_cooldown = 0.0f;
+    state.tutorial_page_idx = 0;
+    state.max_tutorial_pages = 2;
 
     ADDED_SPEED = 1.0f;
     FIRE_STREAMS = 1;
@@ -601,6 +619,75 @@ void on_ship_hit(void) {
     const SDL_TimerID id = SDL_AddTimer(3000, reset_level, NULL);
     if (id == 0) {
         SDL_Log("SDL_AddTimer Error: %s", SDL_GetError());
+    }
+}
+
+void increment_instructions(void) {
+    if (++state.tutorial_page_idx > state.max_tutorial_pages) {
+        state.tutorial_page_idx = 0;
+    }
+}
+
+void decrement_instructions(void) {
+    if (--state.tutorial_page_idx < 0) {
+        state.tutorial_page_idx = state.max_tutorial_pages;
+    }
+}
+
+void set_instructions_active(void) {
+    state.state = TUTORIAL_SCREEN;
+    for (int i = 0; i < 20; i++) {
+        add_new_asteroid(LARGE, (v2) {randf(0, SCREEN_WIDTH), randf(0, SCREEN_HEIGHT)});
+    }
+    add_coin((v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f});
+    add_coin((v2) {SCREEN_WIDTH / 2.0f - 40, SCREEN_HEIGHT / 2.0f});
+    add_coin((v2) {SCREEN_WIDTH / 2.0f + 40, SCREEN_HEIGHT / 2.0f});
+    add_coin((v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 40});
+    add_coin((v2) {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 40});
+}
+
+void set_instructions_inactive(void) {
+    state.state = START_MENU;
+    destroy_all_asteroids();
+    array_list_free(state.asteroids);
+    state.asteroids = array_list_create(sizeof(asteroid));
+    for (size_t i = 0; i < array_list_size(state.a_coins); i++) {
+        array_list_remove(state.a_coins, i);
+        i--;
+    }
+    reset_state();
+}
+
+void render_how_to_play(void) {
+    render_text_3d_extruded(state.renderer, "HOW TO PLAY", (v2){SCREEN_WIDTH / 2.0f, 100}, 35.0f);
+    switch (state.tutorial_page_idx) {
+        case 0:
+            render_text(state.renderer,
+                        "MOVE YOUR SHIP WITH  W  A  D  AND FIRE PROJECTILES WITH  SPACE\n\nYOUR SCORE AND LIVES ARE VISIBLE IN THE TOP LEFT\n\nIF YOURE IN IMMINENT DANGER, PRESS  F  TO HYPERSPACE JUMP AND TELEPORT TO A RANDOM POSITION",
+                        (v2){SCREEN_WIDTH / 2.0f, 700}, 15.0f);
+            update_ship();
+            render_ship();
+            update_projectiles();
+            render_projectiles();
+            render_score((v2){62.0f, 12.0f}, 20.0f);
+            render_lives((v2){30.0f, 50.0f});
+            break;
+        case 1:
+            render_text(state.renderer,
+                        "ASTEROIDS HAVE DIFFERENT TYPES\n\nSOME CAUSE CHAIN REACTIONS WHILE OTHERS DISABLE YOUR SHIP OR STEAL YOUR POINTS\n\nLEARN WHAT EACH ASTEROID TYPE DOES AND USE THAT TO YOUR ADVANTAGE",
+                        (v2){SCREEN_WIDTH / 2.0f, 700}, 15.0f);
+            update_asteroids();
+            render_asteroids();
+            break;
+        case 2:
+            render_text(state.renderer,
+                        "ASTEROIDS WILL PERIODICALLY DROP COINS WHICH ARE DISPLAYED IN THE TOP RIGHT\n\nSPEND COINS ON UPGRADES IN THE SHOP AFTER EACH STAGE",
+                        (v2){SCREEN_WIDTH / 2.0f, 700}, 15.0f);
+            render_coins_ui((v2){SCREEN_WIDTH - 100, 20.0f});
+            handle_coins_world();
+            break;
+        default:
+            break;
     }
 }
 
@@ -1424,7 +1511,8 @@ void add_particles(const v2 pos, const int n, const float r, const float g, cons
 }
 
 void add_projectile(const v2 pos, const bool from_ship, const bool from_small_saucer) {
-    if (state.state != GAME_VIEW) return;
+    const bool proceed = state.state == GAME_VIEW || TUTORIAL_SCREEN;
+    if (!proceed) return;
 
     const v2 ship_vel = (v2){
         -sinf(state.ship.angle * (float) M_PI / 180.0f),

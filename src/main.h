@@ -156,6 +156,9 @@ typedef struct {
 
     float hyperspace_cooldown;
     float fire_cooldown;
+
+    int tutorial_page_idx;
+    int max_tutorial_pages;
 } game_state;
 
 extern game_state state;
@@ -193,6 +196,16 @@ void update_audio_streams(void);
 void update_prox_explosions(void);
 
 void render_prox_explosions(void);
+
+void set_instructions_inactive(void);
+
+void set_instructions_active(void);
+
+void render_how_to_play(void);
+
+void decrement_instructions(void);
+
+void increment_instructions(void);
 
 Uint32 begin_new_stage(void *userdata, SDL_TimerID timerID, Uint32 interval);
 

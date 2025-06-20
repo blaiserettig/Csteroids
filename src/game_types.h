@@ -8,6 +8,7 @@ enum state {
     OVER_MENU,
     SHOP_MENU,
     PAUSE_MENU,
+    TUTORIAL_SCREEN,
 };
 
 #endif // GAME_TYPES_H
