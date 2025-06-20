@@ -9,8 +9,8 @@
 #include "shop.h"
 #include "util/array_list.h"
 
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
+#define SCREEN_WIDTH 1536
+#define SCREEN_HEIGHT 864
 
 #define DEFAULT_SPEED 60
 #define SCALE 1.5

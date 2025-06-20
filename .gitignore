@@ -7,9 +7,6 @@
 # clangd
 .cache/
 
-# Promotional stuff
-screenshots/
-
 # Prerequisites
 *.d
 

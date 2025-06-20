@@ -129,16 +129,16 @@ void init_buttons(void) {
                           (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 48.0f, 128, 64}, "QUIT",
                           end_game, PAUSE_MENU);
     button_system_add_default(&state.button_system,
-                      (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 400.0f, 128, 64}, "DONE",
+                      (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 300.0f, 128, 64}, "DONE",
                       exit_shop, SHOP_MENU);
     button_system_add_default(&state.button_system,
-                  (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 400.0f, 128, 64}, "RETURN",
+                  (SDL_FRect){SCREEN_WIDTH / 2.0f - 64, SCREEN_HEIGHT / 2.0f + 300.0f, 128, 64}, "RETURN",
                   set_instructions_inactive, TUTORIAL_SCREEN);
     button_system_add_default(&state.button_system,
-              (SDL_FRect){SCREEN_WIDTH / 2.0f - 144, SCREEN_HEIGHT / 2.0f + 300.0f, 128, 64}, "PREV",
+              (SDL_FRect){SCREEN_WIDTH / 2.0f - 144, SCREEN_HEIGHT / 2.0f + 200.0f, 128, 64}, "PREV",
               decrement_instructions, TUTORIAL_SCREEN);
     button_system_add_default(&state.button_system,
-              (SDL_FRect){SCREEN_WIDTH / 2.0f + 16, SCREEN_HEIGHT / 2.0f + 300.0f, 128, 64}, "NEXT",
+              (SDL_FRect){SCREEN_WIDTH / 2.0f + 16, SCREEN_HEIGHT / 2.0f + 200.0f, 128, 64}, "NEXT",
               increment_instructions, TUTORIAL_SCREEN);
 }
 
@@ -665,8 +665,8 @@ void render_how_to_play(void) {
     switch (state.tutorial_page_idx) {
         case 0:
             render_text(state.renderer,
-                        "MOVE YOUR SHIP WITH  W  A  D  AND FIRE PROJECTILES WITH  SPACE\n\nYOUR SCORE AND LIVES ARE VISIBLE IN THE TOP LEFT\n\nIF YOURE IN IMMINENT DANGER, PRESS  F  TO HYPERSPACE JUMP AND TELEPORT TO A RANDOM POSITION",
-                        (v2){SCREEN_WIDTH / 2.0f, 700}, 15.0f);
+                        "MOVE YOUR SHIP WITH  W  A  D  AND FIRE PROJECTILES WITH  SPACE\n\nYOUR SCORE AND LIVES ARE VISIBLE IN THE TOP LEFT\n\nIF YOURE IN IMMINENT DANGER, PRESS  F  TO HYPERSPACE JUMP AND TELEPORT TO A RANDOM POSITION\n\nPAUSE WITH  CAPSLOCK",
+                        (v2){SCREEN_WIDTH / 2.0f, 200}, 15.0f);
             update_ship();
             render_ship();
             update_projectiles();
@@ -677,14 +677,14 @@ void render_how_to_play(void) {
         case 1:
             render_text(state.renderer,
                         "ASTEROIDS HAVE DIFFERENT TYPES\n\nSOME CAUSE CHAIN REACTIONS WHILE OTHERS DISABLE YOUR SHIP OR STEAL YOUR POINTS\n\nLEARN WHAT EACH ASTEROID TYPE DOES AND USE THAT TO YOUR ADVANTAGE",
-                        (v2){SCREEN_WIDTH / 2.0f, 700}, 15.0f);
+                        (v2){SCREEN_WIDTH / 2.0f, 200}, 15.0f);
             update_asteroids();
             render_asteroids();
             break;
         case 2:
             render_text(state.renderer,
                         "ASTEROIDS WILL PERIODICALLY DROP COINS WHICH ARE DISPLAYED IN THE TOP RIGHT\n\nSPEND COINS ON UPGRADES IN THE SHOP AFTER EACH STAGE",
-                        (v2){SCREEN_WIDTH / 2.0f, 700}, 15.0f);
+                        (v2){SCREEN_WIDTH / 2.0f, 200}, 15.0f);
             render_coins_ui((v2){SCREEN_WIDTH - 100, 20.0f});
             handle_coins_world();
             break;
@@ -911,6 +911,7 @@ void handle_input(void) {
                     case SDL_SCANCODE_F:
                         hyperspace_warp();
                         break;
+                    case SDL_SCANCODE_CAPSLOCK:
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
                         break;
@@ -1293,7 +1294,7 @@ void projectile_collision_check(void) {
         projectile *p = array_list_get(state.projectiles, i);
 
         //Projectile vs. ship collision
-        if (v2_dist_sqr(p->pos, state.ship.position) < 150 * (float)SCALE && p->ttl < 1.75f && !state.dead && state.player_invincible_timer <= 0.05f) {
+        if (v2_dist_sqr(p->pos, state.ship.position) < 150 * (float)SCALE && p->ttl < 1.25f && !state.dead && state.player_invincible_timer <= 0.05f) {
             on_ship_hit();
         }
 
@@ -1305,7 +1306,7 @@ void projectile_collision_check(void) {
             } else {
                 prox_bonus = 1.0f;
             }
-            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 350 + prox_bonus * (float)SCALE && p->ttl < 1.85f) {
+            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 350 + prox_bonus * (float)SCALE && p->ttl < 1.35f) {
                 on_saucer_hit(true);
             }
         }
@@ -1316,7 +1317,7 @@ void projectile_collision_check(void) {
             } else {
                 prox_bonus = 1.0f;
             }
-            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 450 + prox_bonus * (float)SCALE && p->ttl < 1.85f) {
+            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 550 + prox_bonus * (float)SCALE && p->ttl < 1.35f) {
                 on_saucer_hit(false);
             }
         }
@@ -1614,7 +1615,7 @@ void add_projectile(const v2 pos, const bool from_ship, const bool from_small_sa
 
         array_list_add(state.projectiles, &(projectile){
                            .pos = projectile_pos,
-                           .ttl = 2.0f,
+                           .ttl = 1.5f,
                            .vel = projectile_vel,
                            .cooldown = 0.0f,
                            .has_homing = has,
