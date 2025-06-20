@@ -34,7 +34,7 @@ emcc -O3 ^
   -s EXPORTED_RUNTIME_METHODS="[\"ccall\",\"cwrap\"]" ^
   --preload-file src/assets@/assets ^
   -o asteroids.html ^
-  src/main.c src/asteroid.c src/audio.c src/button.c src/text.c src/util/array_list.c -lm
+  src/main.c src/asteroid.c src/audio.c src/button.c src/text.c src/util/array_list.c src/shop.c -lm
 
 REM Check if build succeeded
 if exist asteroids.html (

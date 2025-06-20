@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "button.h"
 #include "text.h"
@@ -316,6 +317,7 @@ void update(void) {
     if (state.state == START_MENU) {
         render_text_3d_extruded(state.renderer, "CSTEROIDS", (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 150.0f},
                                 75.0f);
+        render_text_3d(state.renderer, "CLICK THE FULLSCREEN ICON IN THE\nBOTTOM RIGHT FOR THE BEST EXPERIENCE", (v2){SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 275.0f}, 25.0f, (SDL_Color) {255, 255, 100, 255});
     }
 
     if (state.state == GAME_VIEW) {
@@ -773,10 +775,10 @@ void update_ship(void) {
         }
     }
     if (state.a) {
-        state.ship.angle -= 7;
+        state.ship.angle -= 4;
     }
     if (state.d) {
-        state.ship.angle += 7;
+        state.ship.angle += 4;
     }
 
     apply_friction(&state.ship.velocity.x, 0.06f);
