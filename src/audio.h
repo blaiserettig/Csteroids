@@ -34,6 +34,7 @@ typedef struct {
     audio_clip lucky;
     audio_clip coin;
     audio_clip no;
+    audio_clip hyperspace;
 } audio_clips_struct;
 
 typedef enum {

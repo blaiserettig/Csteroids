@@ -331,6 +331,7 @@ int load_all_audio(void) {
         {"LUCKY.wav", &audio_clips.lucky},
         {"COIN.wav", &audio_clips.coin},
         {"NO.wav", &audio_clips.no},
+        {"HYPERSPACE.wav", &audio_clips.hyperspace},
     };
 
     const int file_count = sizeof(audio_files) / sizeof(audio_files[0]);

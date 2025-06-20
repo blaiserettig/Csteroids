@@ -42,7 +42,7 @@ bool HAS_PIERCING = false;
 bool HAS_MAGNET = false;
 int RADAR_STACKS = 1;
 float HYPERSPACE_COOLDOWN = 5.0f;
-float FIRE_COOLDOWN = 0.5f;
+float FIRE_COOLDOWN = 0.4f;
 bool HAS_SALVAGE_RIGHTS = false;
 float PROJ_SPEED = 1.0f;
 int PROX_STACK = 0;
@@ -706,6 +706,7 @@ void hyperspace_warp(void) {
         play_sound_effect(AUDIO_STREAM_SFX, audio_clips.no);
         return;
     }
+    play_sound_effect(AUDIO_STREAM_SFX, audio_clips.hyperspace);
     state.hyperspace_cooldown = HYPERSPACE_COOLDOWN;
     v2 rand_pos = {randf(0.0f, SCREEN_WIDTH), randf(0.0f, SCREEN_HEIGHT)};
     if (HAS_SAFE_WARP) {
@@ -1302,12 +1303,24 @@ void projectile_collision_check(void) {
 
         // Projectile vs. saucer collision
         if (state.s_saucer) {
-            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 350 + (float)PROX_STACK * 1000.0f * (float)SCALE && p->ttl < 1.85f) {
+            float prox_bonus;
+            if (p->from_ship) {
+                prox_bonus = (float)PROX_STACK * 1000.0f;
+            } else {
+                prox_bonus = 1.0f;
+            }
+            if (v2_dist_sqr(p->pos, state.small_saucer.pos) < 350 + prox_bonus * (float)SCALE && p->ttl < 1.85f) {
                 on_saucer_hit(true);
             }
         }
         if (state.b_saucer) {
-            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 450 + (float)PROX_STACK * 1000.0f * (float)SCALE && p->ttl < 1.85f) {
+            float prox_bonus;
+            if (p->from_ship) {
+                prox_bonus = (float)PROX_STACK * 1000.0f;
+            } else {
+                prox_bonus = 1.0f;
+            }
+            if (v2_dist_sqr(p->pos, state.big_saucer.pos) < 450 + prox_bonus * (float)SCALE && p->ttl < 1.85f) {
                 on_saucer_hit(false);
             }
         }
