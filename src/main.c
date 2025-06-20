@@ -911,12 +911,6 @@ void handle_input(void) {
                     case SDL_SCANCODE_F:
                         hyperspace_warp();
                         break;
-                    case SDL_SCANCODE_E:
-                        clear_all();
-                        break;
-                    case SDL_SCANCODE_R:
-                        PROX_STACK++;
-                        break;
                     case SDL_SCANCODE_ESCAPE:
                         state.pause_state_change = state.pause_state_change ?  0 : 1;
                         break;
