@@ -1234,7 +1234,7 @@ void shop_item_init(void) {
     };
     state.shop.items_list[10] = (shop_item){
         .title = "FLUX CAPACITOR",
-        .description = "REDUCE HYPERSPACE\nCOOLDOWN BY 30\nMULTIPLICATIVE",
+        .description = "REDUCE HYPERSPACE\nCOOLDOWN BY 30 PERCENT\nMULTIPLICATIVE",
         .price = 3,
         .included = false
     };

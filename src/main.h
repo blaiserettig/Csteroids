@@ -12,7 +12,7 @@
 #define SCREEN_WIDTH 1536
 #define SCREEN_HEIGHT 864
 
-#define DEFAULT_SPEED 60
+#define DEFAULT_SPEED 50
 #define SCALE 1.5
 
 extern int FIRE_STREAMS;
