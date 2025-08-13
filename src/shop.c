@@ -1330,10 +1330,21 @@ void shop_item_click_callback(void) {
 }
 
 shop_item get_random_shop_item(void) {
+    if (PROX_STACK == 0) { // guarantee prox fuse if you don't have it
+        for (int i = 0; i < 14; i++) {
+            if (strcmp(state.shop.items_list[i].title, "PROXIMITY FUSE") == 0) {
+                if (state.shop.items_list[i].included == false) {
+                    state.shop.items_list[i].included = true;
+                    return state.shop.items_list[i];
+                }
+            }
+        }
+    }
+
     while (true) {
         const int n = randi(0, 13);
         if (state.shop.items_list[n].included == false) {
-            if (strcmp(state.shop.items_list[n].title, "PIERCING") == 0 && HAS_PIERCING) continue;
+            if (strcmp(state.shop.items_list[n].title, "PIERCING") == 0 && HAS_PIERCING) continue; // Skip all the onefold use
             if (strcmp(state.shop.items_list[n].title, "SAFE WARP") == 0 && HAS_SAFE_WARP) continue;
             if (strcmp(state.shop.items_list[n].title, "MAGNET") == 0 && HAS_MAGNET) continue;
             if (strcmp(state.shop.items_list[n].title, "SALVAGE RIGHTS") == 0 && HAS_SALVAGE_RIGHTS) continue;
@@ -1343,8 +1354,8 @@ shop_item get_random_shop_item(void) {
     }
 }
 
-void shop_item_container_init(shop_item_container *container, const SDL_FRect root_container, float icon_size_ratio,
-                    const char *title, const char *desc, const int price) {
+void shop_item_container_init(shop_item_container *container, const SDL_FRect root_container,
+                              const char *title, const char *desc, const int price) {
     container->outer_rect = root_container;
 
     const float padding = 8.0f;
@@ -1499,11 +1510,11 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
             char price_str[8];
             sprintf(price_str, "%d", container->item.price);
             const SDL_Color text_color = container->item.is_affordable || container->item.is_purchased ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){255, 200, 200, 200};
-            render_text_3d(state.renderer, container->item.title, title_pos, 25.0f, text_color);
+            render_text_3d(state.renderer, container->item.title, title_pos, 20.0f, text_color);
 
             //SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             const v2 desc_pos = (v2) {.x = container->desc_rect.x + container->desc_rect.w * 0.5f, .y = container->desc_rect.y + container->desc_rect.h * 0.5f};
-            render_text(state.renderer, container->item.description,  desc_pos, 15.0f);
+            render_text(state.renderer, container->item.description,  desc_pos, 12.0f);
 
             if (!container->item.is_affordable) {
                 set_shop_button(false, i);
@@ -1524,10 +1535,10 @@ void shop_render(const shop *s, SDL_Renderer *renderer) {
                                (v2){
                                    .x = container->title_rect.x + container->title_rect.w * 0.14f,
                                    .y = container->title_rect.y + container->title_rect.h * 0.35f
-                               }, 20.0f, (SDL_Color){.r = 255, .g = 255, .b = 100, .a = 255});
+                               }, 12.0f, (SDL_Color){.r = 255, .g = 255, .b = 100, .a = 255});
                 state.button_system.buttons[state.shop.button_start_idx + (size_t) i].visible = false;
             } else {
-                render_text_3d(state.renderer, price_str, price_pos, 25.0f,
+                render_text_3d(state.renderer, price_str, price_pos, 20.0f,
                                (SDL_Color){.r = 255, .g = 255, .b = 100, .a = 255});
                 render_coin(renderer, (v2){
                                 .x = container->title_rect.x + container->title_rect.w * 0.04f,
@@ -1590,7 +1601,7 @@ Uint32 enter_shop(void *userdata, SDL_TimerID timerID, const Uint32 interval) {
             };
 
             const shop_item h = get_random_shop_item();
-            shop_item_container_init(&state.shop.containers[i], item_container, 0.8f,  h.title, h.description, h.price);
+            shop_item_container_init(&state.shop.containers[i], item_container, h.title,  h.description, h.price);
         }
         state.shop.cycle_init = true;
         state.state = SHOP_MENU;

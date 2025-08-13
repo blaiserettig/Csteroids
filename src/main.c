@@ -1,5 +1,3 @@
-//gcc -I./include src/main.c -o main.exe -L./lib -lSDL3 
-
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
@@ -43,7 +41,7 @@ bool HAS_PIERCING = false;
 bool HAS_MAGNET = false;
 int RADAR_STACKS = 1;
 float HYPERSPACE_COOLDOWN = 5.0f;
-float FIRE_COOLDOWN = 0.4f;
+float FIRE_COOLDOWN = 0.2f;
 bool HAS_SALVAGE_RIGHTS = false;
 float PROJ_SPEED = 1.0f;
 int PROX_STACK = 0;
@@ -584,7 +582,7 @@ void reset_state(void) {
     HAS_MAGNET = false;
     RADAR_STACKS = 0;
     HYPERSPACE_COOLDOWN = 5.0f;
-    FIRE_COOLDOWN = 0.75f;
+    FIRE_COOLDOWN = 0.2f;
     HAS_SALVAGE_RIGHTS = false;
     PROJ_SPEED = 1.0f;
     PROX_STACK = 0;

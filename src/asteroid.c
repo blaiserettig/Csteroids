@@ -39,7 +39,7 @@ float get_asteroid_check_distance(const asteroid_size size) {
         case MEDIUM:
             return 700.0f;
         case LARGE:
-            return 1200.0f;
+            return 1300.0f;
         default:
             return 0.0f;
     }
