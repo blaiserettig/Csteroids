@@ -9,8 +9,10 @@
 
 Destroy ever-increasing numbers of asteroids and upgrade your ship along the way as you discover new types of asteroids, different upgrades, and encounter some highly skilled alien pilots.
 
-[(https://raw.githubusercontent.com/blaiserettig/Csteroids/refs/heads/main/screenshots/types.png)]
-[https://raw.githubusercontent.com/blaiserettig/Csteroids/refs/heads/main/screenshots/up.png]
+<p align="center">
+<img src="https://raw.githubusercontent.com/blaiserettig/Csteroids/refs/heads/main/screenshots/types.png">
+<img src="https://raw.githubusercontent.com/blaiserettig/Csteroids/refs/heads/main/screenshots/up.png">
+</p>
 
 ##
 
